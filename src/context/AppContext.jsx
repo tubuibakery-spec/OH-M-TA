@@ -10,6 +10,7 @@ export function useApp() {
 }
 
 const KHOA_CHI_NHANH = 'ohmeta.chi_nhanh_id'
+const KHOA_PHONG_BAN = 'ohmeta.phong_ban_id'
 
 export function AppProvider({ children }) {
   const [session, setSession] = useState(null)
@@ -19,12 +20,20 @@ export function AppProvider({ children }) {
   const [quyen, setQuyen] = useState([])         // [{ module, hanh_dong, chi_nhanh_id }]
   const [chiNhanhs, setChiNhanhs] = useState([])
   const [chiNhanhId, setChiNhanhIdState] = useState(null)
+  const [phongBanId, setPhongBanIdState] = useState(
+    () => localStorage.getItem(KHOA_PHONG_BAN) || 'ban_gd'
+  )
   const [loi, setLoi] = useState(null)
 
   const setChiNhanhId = useCallback((id) => {
     setChiNhanhIdState(id)
     if (id) localStorage.setItem(KHOA_CHI_NHANH, id)
     else localStorage.removeItem(KHOA_CHI_NHANH)
+  }, [])
+
+  const setPhongBanId = useCallback((id) => {
+    setPhongBanIdState(id)
+    localStorage.setItem(KHOA_PHONG_BAN, id)
   }, [])
 
   // --- Phiên đăng nhập ---
@@ -147,6 +156,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       session, dangTai, loi, nguoiDung, vaiTro, quyen,
       chiNhanhs, chiNhanh, chiNhanhId, setChiNhanhId,
+      phongBanId, setPhongBanId,
       laQuanTri, coQuyen, coQuyenMoiNoi, dangXuat, napLai: napHoSo
     }}>
       {children}

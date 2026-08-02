@@ -25,11 +25,45 @@ const MENU = [
   { duong: '/nhan-vien', nhan: 'Nhân viên', bieuTuong: '👤', module: 'nhan_su' }
 ]
 
+// Phòng ban chỉ lọc MENU HIỂN THỊ — không phải phân quyền thật (đó là việc
+// của coQuyenMoiNoi/RLS). "duongChoPhep: null" nghĩa là hiện toàn bộ menu
+// mà tài khoản có quyền xem (dành cho Ban Giám đốc).
+const PHONG_BAN = [
+  { id: 'ban_gd', nhan: 'Ban Giám đốc', bieuTuong: '👔', canChiNhanh: false, duongChoPhep: null },
+  { id: 'ke_toan', nhan: 'Kế toán', bieuTuong: '🧾', canChiNhanh: false,
+    duongChoPhep: ['/ke-toan', '/cong-no', '/bao-cao'] },
+  { id: 'hr', nhan: 'Nhân sự', bieuTuong: '👤', canChiNhanh: false,
+    duongChoPhep: ['/nhan-vien'] },
+  { id: 'thu_mua', nhan: 'Thu mua', bieuTuong: '🛍️', canChiNhanh: true,
+    duongChoPhep: ['/nhap-hang', '/don-dat-hang', '/de-xuat-don-hang', '/vat-tu', '/nha-cung-cap'] },
+  { id: 'san_xuat', nhan: 'Sản xuất', bieuTuong: '🏭', canChiNhanh: true,
+    duongChoPhep: ['/san-xuat', '/ton-kho', '/kiem-ke', '/vat-tu'] },
+  { id: 'sale_b2b', nhan: 'Sale B2B', bieuTuong: '🤝', canChiNhanh: true,
+    duongChoPhep: ['/khach-hang-b2b', '/co-hoi-ban-hang', '/don-hang-b2b', '/cong-no'] },
+  { id: 'logistic', nhan: 'Logistics', bieuTuong: '🚛', canChiNhanh: true,
+    duongChoPhep: ['/chuyen-giao-hang', '/phuong-tien', '/xuat-kho'] },
+  { id: 'cua_hang', nhan: 'Cửa hàng (Bán hàng)', bieuTuong: '🏪', canChiNhanh: true,
+    duongChoPhep: ['/ban-le', '/ton-kho', '/kiem-ke', '/xuat-kho', '/vat-tu'] }
+]
+
 export default function Layout() {
-  const { chiNhanhs, chiNhanhId, setChiNhanhId, chiNhanh, nguoiDung, vaiTro, dangXuat, coQuyenMoiNoi } = useApp()
+  const {
+    chiNhanhs, chiNhanhId, setChiNhanhId, chiNhanh,
+    phongBanId, setPhongBanId,
+    nguoiDung, vaiTro, dangXuat, coQuyenMoiNoi
+  } = useApp()
   const [moMenu, setMoMenu] = useState(false)
 
-  const menuHienThi = MENU.filter(m => !m.module || coQuyenMoiNoi(m.module, 'xem'))
+  const phongBan = PHONG_BAN.find(p => p.id === phongBanId) || PHONG_BAN[0]
+
+  const menuHienThi = MENU.filter(m => {
+    if (m.module && !coQuyenMoiNoi(m.module, 'xem')) return false
+    if (m.duong === '/') return true   // Tổng quan luôn hiện, mọi phòng ban
+    if (!phongBan.duongChoPhep) return true   // Ban Giám đốc: hiện hết
+    return phongBan.duongChoPhep.includes(m.duong)
+  })
+
+  const canChonChiNhanh = phongBan.canChiNhanh
 
   return (
     <div className="d-flex flex-column min-vh-100">
@@ -45,7 +79,18 @@ export default function Layout() {
             OH! MÊ TA
           </span>
 
-          {chiNhanhs.length > 0 && (
+          <select
+            className="form-select form-select-sm w-auto"
+            value={phongBanId}
+            onChange={e => setPhongBanId(e.target.value)}
+            title="Phòng ban đang làm việc"
+          >
+            {PHONG_BAN.map(p => (
+              <option key={p.id} value={p.id}>{p.bieuTuong} {p.nhan}</option>
+            ))}
+          </select>
+
+          {canChonChiNhanh && chiNhanhs.length > 0 && (
             <select
               className="form-select form-select-sm w-auto"
               value={chiNhanhId || ''}
@@ -79,6 +124,9 @@ export default function Layout() {
       <div className="container-fluid flex-grow-1">
         <div className="row">
           <aside className={`col-lg-2 bg-light border-end py-3 ${moMenu ? '' : 'd-none d-lg-block'}`}>
+            <div className="px-3 pb-2 text-secondary small text-uppercase fw-semibold">
+              {phongBan.bieuTuong} {phongBan.nhan}
+            </div>
             <ul className="nav nav-pills flex-column gap-1">
               {menuHienThi.map(m => (
                 <li key={m.duong} className="nav-item">
@@ -96,7 +144,7 @@ export default function Layout() {
           </aside>
 
           <main className="col-lg-10 py-4">
-            {!chiNhanh && (
+            {canChonChiNhanh && !chiNhanh && (
               <div className="alert alert-warning">
                 Tài khoản chưa được gán chi nhánh nào. Nhờ quản trị viên gán vai trò kèm chi nhánh.
               </div>
@@ -107,7 +155,7 @@ export default function Layout() {
       </div>
 
       <footer className="border-top py-3 text-center text-secondary small">
-        OH! MÊ TA · {chiNhanh?.ten_chi_nhanh || '—'}
+        OH! MÊ TA · {phongBan.nhan}{canChonChiNhanh && chiNhanh ? ` · ${chiNhanh.ten_chi_nhanh}` : ''}
       </footer>
     </div>
   )
