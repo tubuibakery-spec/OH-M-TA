@@ -4,12 +4,18 @@ import { useApp } from '../context/AppContext'
 
 const MENU = [
   { duong: '/', nhan: 'Tổng quan', bieuTuong: '📊', module: null },
+  { duong: '/ban-le', nhan: 'Bán lẻ', bieuTuong: '🛒', module: 'ban_le' },
   { duong: '/ton-kho', nhan: 'Tồn kho', bieuTuong: '📦', module: 'kho' },
   { duong: '/nhap-hang', nhan: 'Nhập hàng', bieuTuong: '📥', module: 'mua_hang' },
   { duong: '/xuat-kho', nhan: 'Xuất / Điều chuyển', bieuTuong: '📤', module: 'kho' },
   { duong: '/kiem-ke', nhan: 'Kiểm kê', bieuTuong: '📋', module: 'kho' },
+  { duong: '/san-xuat', nhan: 'Sản xuất', bieuTuong: '🏭', module: 'san_xuat' },
   { duong: '/de-xuat-don-hang', nhan: 'Đề xuất đặt hàng', bieuTuong: '🧮', module: 'mua_hang' },
   { duong: '/don-dat-hang', nhan: 'Đơn đặt NCC', bieuTuong: '🧾', module: 'mua_hang' },
+  { duong: '/khach-hang-b2b', nhan: 'Khách hàng B2B', bieuTuong: '🤝', module: 'b2b' },
+  { duong: '/don-hang-b2b', nhan: 'Đơn hàng B2B', bieuTuong: '📑', module: 'b2b' },
+  { duong: '/cong-no', nhan: 'Công nợ', bieuTuong: '💰', module: 'cong_no' },
+  { duong: '/bao-cao', nhan: 'Báo cáo', bieuTuong: '📈', module: 'tai_chinh' },
   { duong: '/vat-tu', nhan: 'Vật tư', bieuTuong: '🏷️', module: 'danh_muc' },
   { duong: '/nha-cung-cap', nhan: 'Nhà cung cấp', bieuTuong: '🚚', module: 'danh_muc' }
 ]

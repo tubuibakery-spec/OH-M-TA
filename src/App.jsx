@@ -11,6 +11,12 @@ import DeXuatDonHang from './pages/DeXuatDonHang'
 import DonDatHang from './pages/DonDatHang'
 import VatTu from './pages/VatTu'
 import NhaCungCap from './pages/NhaCungCap'
+import BanLe from './pages/BanLe'
+import SanXuat from './pages/SanXuat'
+import KhachHangB2B from './pages/KhachHangB2B'
+import DonHangB2B from './pages/DonHangB2B'
+import CongNo from './pages/CongNo'
+import BaoCao from './pages/BaoCao'
 import { DangTai, Loi } from './components/Chung'
 
 function Router() {
@@ -51,6 +57,12 @@ function Router() {
         <Route path="don-dat-hang" element={<DonDatHang />} />
         <Route path="vat-tu" element={<VatTu />} />
         <Route path="nha-cung-cap" element={<NhaCungCap />} />
+        <Route path="ban-le" element={<BanLe />} />
+        <Route path="san-xuat" element={<SanXuat />} />
+        <Route path="khach-hang-b2b" element={<KhachHangB2B />} />
+        <Route path="don-hang-b2b" element={<DonHangB2B />} />
+        <Route path="cong-no" element={<CongNo />} />
+        <Route path="bao-cao" element={<BaoCao />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
