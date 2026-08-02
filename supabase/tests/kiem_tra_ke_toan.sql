@@ -7,7 +7,7 @@
 begin;
 
 insert into chi_nhanh (id, ma_chi_nhanh, ten_chi_nhanh, loai_chi_nhanh) values
-  ('d1000000-0000-0000-0000-000000000001', 'T_KT_CH', 'TEST Kế toán CH');
+  ('d1000000-0000-0000-0000-000000000001', 'T_KT_CH', 'TEST Kế toán CH', 'cua_hang');
 insert into don_vi_tinh (id, ma_dvt, ten_dvt) values
   ('d1000000-0000-0000-0000-000000000002', 'T_KT_CAI', 'Cái');
 insert into nha_cung_cap (id, ma_ncc, ten_ncc) values
