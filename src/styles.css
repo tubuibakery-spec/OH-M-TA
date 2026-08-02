@@ -1,0 +1,42 @@
+:root {
+  --ohmeta-do: #c1121f;
+}
+
+body {
+  font-size: 15px;
+}
+
+/* iOS Safari tự phóng to khi font input < 16px */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+.nav-pills .nav-link.active {
+  background-color: var(--ohmeta-do);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--ohmeta-do);
+  --bs-btn-border-color: var(--ohmeta-do);
+  --bs-btn-hover-bg: #a10e1a;
+  --bs-btn-hover-border-color: #a10e1a;
+  --bs-btn-active-bg: #8d0c17;
+  --bs-btn-active-border-color: #8d0c17;
+}
+
+.btn-link {
+  --bs-btn-color: var(--ohmeta-do);
+  --bs-btn-hover-color: #8d0c17;
+}
+
+/* Modal tự dựng bằng React cần z-index cao hơn backdrop */
+.modal.show.d-block {
+  z-index: 1055;
+}
+.modal-backdrop {
+  z-index: 1050;
+}
+
+code {
+  color: #6c757d;
+}

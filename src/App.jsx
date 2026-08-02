@@ -1,0 +1,68 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AppProvider, useApp } from './context/AppContext'
+import Layout from './components/Layout'
+import DangNhap from './pages/DangNhap'
+import TongQuan from './pages/TongQuan'
+import TonKho from './pages/TonKho'
+import NhapHang from './pages/NhapHang'
+import XuatKho from './pages/XuatKho'
+import KiemKe from './pages/KiemKe'
+import DeXuatDonHang from './pages/DeXuatDonHang'
+import DonDatHang from './pages/DonDatHang'
+import VatTu from './pages/VatTu'
+import NhaCungCap from './pages/NhaCungCap'
+import { DangTai, Loi } from './components/Chung'
+
+function Router() {
+  const { session, dangTai, loi, dangXuat } = useApp()
+
+  if (dangTai) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center">
+        <DangTai text="Đang tải hệ thống…" />
+      </div>
+    )
+  }
+
+  if (!session) return <DangNhap />
+
+  // Đăng nhập được nhưng chưa khai trong nguoi_dung_he_thong / chưa gán vai trò
+  if (loi) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center p-3">
+        <div style={{ maxWidth: 560 }}>
+          <div className="fw-bold fs-4 mb-3" style={{ color: '#c1121f' }}>OH! MÊ TA</div>
+          <Loi loi={loi} />
+          <button className="btn btn-outline-secondary" onClick={dangXuat}>Đăng xuất</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<TongQuan />} />
+        <Route path="ton-kho" element={<TonKho />} />
+        <Route path="nhap-hang" element={<NhapHang />} />
+        <Route path="xuat-kho" element={<XuatKho />} />
+        <Route path="kiem-ke" element={<KiemKe />} />
+        <Route path="de-xuat-don-hang" element={<DeXuatDonHang />} />
+        <Route path="don-dat-hang" element={<DonDatHang />} />
+        <Route path="vat-tu" element={<VatTu />} />
+        <Route path="nha-cung-cap" element={<NhaCungCap />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppProvider>
+        <Router />
+      </AppProvider>
+    </BrowserRouter>
+  )
+}

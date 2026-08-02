@@ -1,0 +1,36 @@
+name: Đẩy migration lên Supabase
+
+# Chạy khi có thay đổi trong supabase/migrations trên nhánh main.
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/migrations/**']
+  workflow_dispatch:
+
+jobs:
+  db-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Liên kết project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Đẩy migration
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+# Cần khai 3 secret trong Settings → Secrets and variables → Actions:
+#   SUPABASE_ACCESS_TOKEN  — Account Settings → Access Tokens
+#   SUPABASE_PROJECT_REF   — mã project (phần xxxx trong xxxx.supabase.co)
+#   SUPABASE_DB_PASSWORD   — mật khẩu database đặt lúc tạo project

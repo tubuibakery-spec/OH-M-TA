@@ -1,0 +1,26 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Biến môi trường — KHÔNG commit
+.env
+.env.*
+!.env.example
+
+# Supabase CLI
+.supabase/
+supabase/.branches/
+supabase/.temp/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# Claude Code (cấu hình máy cá nhân)
+.claude/
