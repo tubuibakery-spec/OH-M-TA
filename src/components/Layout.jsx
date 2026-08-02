@@ -13,11 +13,16 @@ const MENU = [
   { duong: '/de-xuat-don-hang', nhan: 'Đề xuất đặt hàng', bieuTuong: '🧮', module: 'mua_hang' },
   { duong: '/don-dat-hang', nhan: 'Đơn đặt NCC', bieuTuong: '🧾', module: 'mua_hang' },
   { duong: '/khach-hang-b2b', nhan: 'Khách hàng B2B', bieuTuong: '🤝', module: 'b2b' },
+  { duong: '/co-hoi-ban-hang', nhan: 'Cơ hội bán hàng', bieuTuong: '🎯', module: 'b2b' },
   { duong: '/don-hang-b2b', nhan: 'Đơn hàng B2B', bieuTuong: '📑', module: 'b2b' },
   { duong: '/cong-no', nhan: 'Công nợ', bieuTuong: '💰', module: 'cong_no' },
   { duong: '/bao-cao', nhan: 'Báo cáo', bieuTuong: '📈', module: 'tai_chinh' },
+  { duong: '/ke-toan', nhan: 'Kế toán', bieuTuong: '🧾', module: 'tai_chinh' },
+  { duong: '/chuyen-giao-hang', nhan: 'Chuyến giao hàng', bieuTuong: '🚛', module: 'logistics' },
+  { duong: '/phuong-tien', nhan: 'Phương tiện', bieuTuong: '🚐', module: 'logistics' },
   { duong: '/vat-tu', nhan: 'Vật tư', bieuTuong: '🏷️', module: 'danh_muc' },
-  { duong: '/nha-cung-cap', nhan: 'Nhà cung cấp', bieuTuong: '🚚', module: 'danh_muc' }
+  { duong: '/nha-cung-cap', nhan: 'Nhà cung cấp', bieuTuong: '🚚', module: 'danh_muc' },
+  { duong: '/nhan-vien', nhan: 'Nhân viên', bieuTuong: '👤', module: 'nhan_su' }
 ]
 
 export default function Layout() {
