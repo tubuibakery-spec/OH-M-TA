@@ -435,6 +435,13 @@ $$ language plpgsql;
 
 -- Hoàn kho cho CẢ 'tra_hang' LẪN 'da_huy' (bản cũ bỏ sót 'da_huy'
 -- => hóa đơn hủy vẫn bị trừ kho vĩnh viễn).
+--
+-- ⚠️ Hoàn ĐÚNG LÔ đã xuất lúc bán, tra lại từ the_kho (giống cách
+-- trg_fn_phieu_xuat_nhan hoàn lô khi nhận điều chuyển). Bản đầu tiên
+-- hoàn với lo_hang_id=null: cộng đúng vào tổng ton_kho nhưng không cộng
+-- vào ton_kho_lo, làm tổng-theo-lô lệch khỏi tổng chung — lệch này âm
+-- thầm tới lúc kiểm kê hoặc FEFO tiếp theo đụng đúng lô mới lộ ra thành
+-- số âm vi phạm check constraint.
 create or replace function trg_fn_hoa_don_tra_hang() returns trigger as $$
 declare
   r record;
@@ -442,11 +449,16 @@ begin
   if new.trang_thai in ('tra_hang', 'da_huy')
      and old.trang_thai = 'hoan_thanh' then
     for r in
-      select vat_tu_id, so_luong from chi_tiet_hoa_don_ban where hoa_don_id = new.id
+      select vat_tu_id, lo_hang_id, sum(abs(so_luong)) as so_luong
+      from the_kho
+      where chung_tu_loai = 'hoa_don_ban'
+        and chung_tu_id = new.id
+        and loai_giao_dich = 'ban_hang'
+      group by vat_tu_id, lo_hang_id
     loop
       perform fn_capnhat_ton_kho(
         new.chi_nhanh_id, r.vat_tu_id, r.so_luong,
-        'dieu_chinh', new.id, 'hoa_don_ban', null
+        'dieu_chinh', new.id, 'hoa_don_ban', r.lo_hang_id
       );
     end loop;
   end if;
@@ -477,6 +489,44 @@ begin
       perform fn_giu_cho_kho(
         new.chi_nhanh_giao_id, r.vat_tu_id, -r.so_luong,
         'giai_phong_xac_nhan_xuat', new.id
+      );
+    end loop;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+-- ===== Hủy đơn B2B đã xuất thật ("dang_giao"): hoàn ĐÚNG LÔ =====
+-- Cùng lỗi với trg_fn_hoa_don_tra_hang ở trên — bản gốc (migration
+-- ham_va_trigger.sql) gọi fn_capnhat_ton_kho không truyền lo_hang_id
+-- (mặc định null) khi hoàn kho cho đơn B2B đã giao rồi bị hủy. Ghi đè
+-- lại ở đây, tra the_kho để hoàn đúng lô đã bị fn_xuat_fefo trừ lúc
+-- xuất thật (loai_giao_dich='ban_b2b').
+create or replace function trg_fn_don_hang_b2b_huy() returns trigger as $$
+declare
+  r record;
+begin
+  if new.trang_thai = 'da_huy' and old.trang_thai = 'da_xac_nhan' then
+    for r in
+      select vat_tu_id, so_luong from chi_tiet_don_hang_b2b where don_hang_id = new.id
+    loop
+      perform fn_giu_cho_kho(
+        new.chi_nhanh_giao_id, r.vat_tu_id, -r.so_luong,
+        'giai_phong_huy_don', new.id
+      );
+    end loop;
+  elsif new.trang_thai = 'da_huy' and old.trang_thai = 'dang_giao' then
+    for r in
+      select vat_tu_id, lo_hang_id, sum(abs(so_luong)) as so_luong
+      from the_kho
+      where chung_tu_loai = 'don_hang_b2b'
+        and chung_tu_id = new.id
+        and loai_giao_dich = 'ban_b2b'
+      group by vat_tu_id, lo_hang_id
+    loop
+      perform fn_capnhat_ton_kho(
+        new.chi_nhanh_giao_id, r.vat_tu_id, r.so_luong,
+        'dieu_chinh', new.id, 'don_hang_b2b', r.lo_hang_id
       );
     end loop;
   end if;
