@@ -135,12 +135,25 @@ begin
   end if;
 
   if p_lo_hang_id is not null then
-    insert into ton_kho_lo (chi_nhanh_id, vat_tu_id, lo_hang_id, so_luong_ton, cap_nhat_luc)
-    values (p_chi_nhanh_id, p_vat_tu_id, p_lo_hang_id, p_so_luong_thay_doi, now())
-    on conflict (chi_nhanh_id, vat_tu_id, lo_hang_id)
-    do update set
-      so_luong_ton = ton_kho_lo.so_luong_ton + p_so_luong_thay_doi,
-      cap_nhat_luc = now();
+    -- UPDATE trước, INSERT nếu chưa có dòng — KHÔNG dùng
+    -- "INSERT ... ON CONFLICT DO UPDATE" ở đây.
+    --
+    -- ⚠️ Lý do: giá trị chèn vào là SỐ THAY ĐỔI (delta), không phải giá trị
+    -- cuối cùng. Với "ON CONFLICT DO UPDATE", Postgres kiểm CHECK
+    -- constraint (so_luong_ton >= 0) trên chính DELTA THÔ của lần thử
+    -- chèn, TRƯỚC KHI xác định có trùng khóa hay không. Delta âm (xuất
+    -- kho) luôn vi phạm ở bước này dù cộng vào tồn có sẵn ra kết quả
+    -- dương — tìm ra qua kiem_tra_nghiep_vu.sql khi bán hàng ở lô thứ 2
+    -- báo lỗi "violates check constraint" dù tồn thật đủ. UPDATE trực
+    -- tiếp tính trên giá trị CUỐI CÙNG thật sự nên không dính lỗi này.
+    update ton_kho_lo
+       set so_luong_ton = so_luong_ton + p_so_luong_thay_doi, cap_nhat_luc = now()
+     where chi_nhanh_id = p_chi_nhanh_id and vat_tu_id = p_vat_tu_id and lo_hang_id = p_lo_hang_id;
+
+    if not found then
+      insert into ton_kho_lo (chi_nhanh_id, vat_tu_id, lo_hang_id, so_luong_ton, cap_nhat_luc)
+      values (p_chi_nhanh_id, p_vat_tu_id, p_lo_hang_id, p_so_luong_thay_doi, now());
+    end if;
   end if;
 
   insert into the_kho (
