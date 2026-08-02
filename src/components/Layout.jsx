@@ -29,7 +29,10 @@ const MENU = [
 // của coQuyenMoiNoi/RLS). "duongChoPhep: null" nghĩa là hiện toàn bộ menu
 // mà tài khoản có quyền xem (dành cho Ban Giám đốc).
 const PHONG_BAN = [
-  { id: 'ban_gd', nhan: 'Ban Giám đốc', bieuTuong: '👔', canChiNhanh: false, duongChoPhep: null },
+  // Chỉ báo cáo/chỉ tiêu tổng hợp toàn chuỗi — KHÔNG hiện màn hình tác
+  // nghiệp (nhập hàng, bán lẻ, đơn hàng...) của từng phòng ban.
+  { id: 'ban_gd', nhan: 'Ban Giám đốc', bieuTuong: '👔', canChiNhanh: false,
+    duongChoPhep: ['/bao-cao', '/ke-toan', '/cong-no'] },
   { id: 'ke_toan', nhan: 'Kế toán', bieuTuong: '🧾', canChiNhanh: false,
     duongChoPhep: ['/ke-toan', '/cong-no', '/bao-cao'] },
   { id: 'hr', nhan: 'Nhân sự', bieuTuong: '👤', canChiNhanh: false,
