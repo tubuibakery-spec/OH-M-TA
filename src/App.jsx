@@ -24,6 +24,9 @@ import CoHoiBanHang from './pages/CoHoiBanHang'
 import KeToan from './pages/KeToan'
 import DuBaoBan from './pages/DuBaoBan'
 import KhuyenMai from './pages/KhuyenMai'
+import ChamCong from './pages/ChamCong'
+import NghiPhep from './pages/NghiPhep'
+import BangLuong from './pages/BangLuong'
 import { DangTai, Loi } from './components/Chung'
 
 function Router() {
@@ -77,6 +80,9 @@ function Router() {
         <Route path="ke-toan" element={<KeToan />} />
         <Route path="du-bao-ban" element={<DuBaoBan />} />
         <Route path="khuyen-mai" element={<KhuyenMai />} />
+        <Route path="cham-cong" element={<ChamCong />} />
+        <Route path="nghi-phep" element={<NghiPhep />} />
+        <Route path="bang-luong" element={<BangLuong />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

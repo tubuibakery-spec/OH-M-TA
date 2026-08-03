@@ -24,6 +24,9 @@ const MENU = [
   { duong: '/vat-tu', nhan: 'Vật tư', bieuTuong: '🏷️', module: 'danh_muc' },
   { duong: '/nha-cung-cap', nhan: 'Nhà cung cấp', bieuTuong: '🚚', module: 'danh_muc' },
   { duong: '/nhan-vien', nhan: 'Nhân viên', bieuTuong: '👤', module: 'nhan_su' },
+  { duong: '/cham-cong', nhan: 'Chấm công', bieuTuong: '🕒', module: 'nhan_su' },
+  { duong: '/nghi-phep', nhan: 'Nghỉ phép', bieuTuong: '🌴', module: 'nhan_su' },
+  { duong: '/bang-luong', nhan: 'Bảng lương', bieuTuong: '💵', module: 'nhan_su' },
   { duong: '/khuyen-mai', nhan: 'Khuyến mãi', bieuTuong: '🎁', module: 'marketing' }
 ]
 
@@ -38,7 +41,7 @@ const PHONG_BAN = [
   { id: 'ke_toan', nhan: 'Kế toán', bieuTuong: '🧾', canChiNhanh: false,
     duongChoPhep: ['/ke-toan', '/cong-no', '/bao-cao'] },
   { id: 'hr', nhan: 'Nhân sự', bieuTuong: '👤', canChiNhanh: false,
-    duongChoPhep: ['/nhan-vien'] },
+    duongChoPhep: ['/nhan-vien', '/cham-cong', '/nghi-phep', '/bang-luong'] },
   { id: 'thu_mua', nhan: 'Thu mua', bieuTuong: '🛍️', canChiNhanh: true,
     duongChoPhep: ['/du-bao-ban', '/nhap-hang', '/don-dat-hang', '/de-xuat-don-hang', '/vat-tu', '/nha-cung-cap'] },
   { id: 'san_xuat', nhan: 'Sản xuất', bieuTuong: '🏭', canChiNhanh: true,
