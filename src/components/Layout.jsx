@@ -23,7 +23,8 @@ const MENU = [
   { duong: '/phuong-tien', nhan: 'Phương tiện', bieuTuong: '🚐', module: 'logistics' },
   { duong: '/vat-tu', nhan: 'Vật tư', bieuTuong: '🏷️', module: 'danh_muc' },
   { duong: '/nha-cung-cap', nhan: 'Nhà cung cấp', bieuTuong: '🚚', module: 'danh_muc' },
-  { duong: '/nhan-vien', nhan: 'Nhân viên', bieuTuong: '👤', module: 'nhan_su' }
+  { duong: '/nhan-vien', nhan: 'Nhân viên', bieuTuong: '👤', module: 'nhan_su' },
+  { duong: '/khuyen-mai', nhan: 'Khuyến mãi', bieuTuong: '🎁', module: 'marketing' }
 ]
 
 // Phòng ban chỉ lọc MENU HIỂN THỊ — không phải phân quyền thật (đó là việc
@@ -43,11 +44,11 @@ const PHONG_BAN = [
   { id: 'san_xuat', nhan: 'Sản xuất', bieuTuong: '🏭', canChiNhanh: true,
     duongChoPhep: ['/san-xuat', '/du-bao-ban', '/ton-kho', '/kiem-ke', '/vat-tu'] },
   { id: 'sale_b2b', nhan: 'Sale B2B', bieuTuong: '🤝', canChiNhanh: true,
-    duongChoPhep: ['/khach-hang-b2b', '/co-hoi-ban-hang', '/don-hang-b2b', '/cong-no'] },
+    duongChoPhep: ['/khach-hang-b2b', '/co-hoi-ban-hang', '/don-hang-b2b', '/cong-no', '/khuyen-mai'] },
   { id: 'logistic', nhan: 'Logistics', bieuTuong: '🚛', canChiNhanh: true,
     duongChoPhep: ['/chuyen-giao-hang', '/phuong-tien', '/xuat-kho'] },
   { id: 'cua_hang', nhan: 'Cửa hàng (Bán hàng)', bieuTuong: '🏪', canChiNhanh: true,
-    duongChoPhep: ['/ban-le', '/du-bao-ban', '/ton-kho', '/kiem-ke', '/xuat-kho', '/vat-tu'] }
+    duongChoPhep: ['/ban-le', '/khuyen-mai', '/du-bao-ban', '/ton-kho', '/kiem-ke', '/xuat-kho', '/vat-tu'] }
 ]
 
 export default function Layout() {

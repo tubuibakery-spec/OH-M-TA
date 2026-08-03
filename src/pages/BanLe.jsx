@@ -24,6 +24,8 @@ export default function BanLe() {
   const [dangLuu, setDangLuu] = useState(false)
   const [hinhThuc, setHinhThuc] = useState('tien_mat')
   const [giamGia, setGiamGia] = useState('0')
+  const [khuyenMaiId, setKhuyenMaiId] = useState('')
+  const [khuyenMais, setKhuyenMais] = useState([])
   const [gioHang, setGioHang] = useState([{ ...DONG_TRONG }])
 
   const [xem, setXem] = useState(null)
@@ -33,18 +35,27 @@ export default function BanLe() {
     if (!chiNhanhId) { setDangTai(false); return }
     setDangTai(true); setLoi(null)
     try {
-      const [h, v] = await Promise.all([
+      const homNayIso = new Date().toISOString().slice(0, 10)
+      const [h, v, km] = await Promise.all([
         supabase.from('hoa_don_ban')
           .select('id, so_hoa_don, ngay_ban, tong_tien_hang, giam_gia, thanh_tien, tong_thanh_toan, hinh_thuc_thanh_toan, trang_thai')
           .eq('chi_nhanh_id', chiNhanhId)
           .order('ngay_ban', { ascending: false }).limit(100),
         supabase.from('vat_tu')
           .select('id, ten_vat_tu, don_vi_tinh(ma_dvt)')
-          .eq('duoc_ban', true).eq('trang_thai', 'hoat_dong').order('ten_vat_tu')
+          .eq('duoc_ban', true).eq('trang_thai', 'hoat_dong').order('ten_vat_tu'),
+        supabase.from('chuong_trinh_khuyen_mai')
+          .select('id, ten_ctkm, loai_giam, gia_tri_giam, gia_tri_don_toi_thieu, ap_dung_kenh')
+          .eq('dang_hoat_dong', true)
+          .in('ap_dung_kenh', ['ban_le', 'ca_hai'])
+          .lte('ap_dung_tu', homNayIso)
+          .or(`ap_dung_den.is.null,ap_dung_den.gte.${homNayIso}`)
+          .order('ten_ctkm')
       ])
       if (h.error) throw h.error
       if (v.error) throw v.error
-      setHoaDon(h.data || []); setVatTus(v.data || [])
+      if (km.error) throw km.error
+      setHoaDon(h.data || []); setVatTus(v.data || []); setKhuyenMais(km.data || [])
     } catch (e) { setLoi(e.message) } finally { setDangTai(false) }
   }, [chiNhanhId])
 
@@ -57,6 +68,22 @@ export default function BanLe() {
   const tongTamTinh = gioHang.reduce((s, r) =>
     s + (Number(r.so_luong) || 0) * (Number(r.don_gia) || 0), 0)
 
+  // Cập nhật lại số giảm gợi ý mỗi khi đổi chương trình hoặc giỏ hàng thay
+  // đổi. Chỉ là GỢI Ý — nhân viên vẫn có thể sửa tay ô "Giảm giá" bên dưới.
+  useEffect(() => {
+    if (!khuyenMaiId) return
+    const km = khuyenMais.find(k => k.id === khuyenMaiId)
+    if (!km) return
+    if (tongTamTinh < Number(km.gia_tri_don_toi_thieu || 0)) {
+      setGiamGia('0')
+      return
+    }
+    const goiY = km.loai_giam === 'phan_tram'
+      ? Math.round(tongTamTinh * Number(km.gia_tri_giam) / 100)
+      : Number(km.gia_tri_giam)
+    setGiamGia(String(Math.min(goiY, tongTamTinh)))
+  }, [khuyenMaiId, khuyenMais, tongTamTinh])
+
   async function thanhToan() {
     const hopLe = gioHang.filter(d => d.vat_tu_id && Number(d.so_luong) > 0)
     if (!hopLe.length) { setLoi('Giỏ hàng trống.'); return }
@@ -67,7 +94,8 @@ export default function BanLe() {
         .insert({
           chi_nhanh_id: chiNhanhId,
           hinh_thuc_thanh_toan: hinhThuc,
-          giam_gia: Number(giamGia || 0)
+          giam_gia: Number(giamGia || 0),
+          khuyen_mai_id: khuyenMaiId || null
         })
         .select('id, so_hoa_don').single()
       if (e1) throw e1
@@ -82,7 +110,8 @@ export default function BanLe() {
       )
       if (e2) throw e2
 
-      setMoTao(false); setGioHang([{ ...DONG_TRONG }]); setGiamGia('0'); setHinhThuc('tien_mat')
+      setMoTao(false); setGioHang([{ ...DONG_TRONG }]); setGiamGia('0')
+      setKhuyenMaiId(''); setHinhThuc('tien_mat')
       await napDs()
     } catch (e) { setLoi(e.message) } finally { setDangLuu(false) }
   }
@@ -197,15 +226,28 @@ export default function BanLe() {
             </select>
           </div>
           <div className="col-md-4">
+            <label className="form-label">Chương trình khuyến mãi</label>
+            <select className="form-select" value={khuyenMaiId} onChange={e => setKhuyenMaiId(e.target.value)}>
+              <option value="">— Không áp dụng —</option>
+              {khuyenMais.map(k => (
+                <option key={k.id} value={k.id}>
+                  {k.ten_ctkm} ({k.loai_giam === 'phan_tram' ? `${k.gia_tri_giam}%` : tien(k.gia_tri_giam)})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="col-md-4">
             <label className="form-label">Giảm giá</label>
             <input type="number" min="0" className="form-control" value={giamGia}
               onChange={e => setGiamGia(e.target.value)} />
+            {khuyenMaiId && <div className="form-text">Số gợi ý từ chương trình — có thể sửa tay.</div>}
           </div>
-          <div className="col-md-4 d-flex align-items-end justify-content-end">
-            <div className="text-end">
-              <div className="text-secondary small">Tổng cộng</div>
-              <div className="fs-4 fw-bold">{tien(tongTamTinh - Number(giamGia || 0))}</div>
-            </div>
+        </div>
+
+        <div className="d-flex justify-content-end mt-3">
+          <div className="text-end">
+            <div className="text-secondary small">Tổng cộng</div>
+            <div className="fs-4 fw-bold">{tien(tongTamTinh - Number(giamGia || 0))}</div>
           </div>
         </div>
       </Modal>
