@@ -10,6 +10,7 @@ const MENU = [
   { duong: '/xuat-kho', nhan: 'Xuất / Điều chuyển', bieuTuong: '📤', module: 'kho' },
   { duong: '/kiem-ke', nhan: 'Kiểm kê', bieuTuong: '📋', module: 'kho' },
   { duong: '/san-xuat', nhan: 'Sản xuất', bieuTuong: '🏭', module: 'san_xuat' },
+  { duong: '/du-bao-ban', nhan: 'Dự báo bán hàng', bieuTuong: '🔮', module: 'du_bao' },
   { duong: '/de-xuat-don-hang', nhan: 'Đề xuất đặt hàng', bieuTuong: '🧮', module: 'mua_hang' },
   { duong: '/don-dat-hang', nhan: 'Đơn đặt NCC', bieuTuong: '🧾', module: 'mua_hang' },
   { duong: '/khach-hang-b2b', nhan: 'Khách hàng B2B', bieuTuong: '🤝', module: 'b2b' },
@@ -38,15 +39,15 @@ const PHONG_BAN = [
   { id: 'hr', nhan: 'Nhân sự', bieuTuong: '👤', canChiNhanh: false,
     duongChoPhep: ['/nhan-vien'] },
   { id: 'thu_mua', nhan: 'Thu mua', bieuTuong: '🛍️', canChiNhanh: true,
-    duongChoPhep: ['/nhap-hang', '/don-dat-hang', '/de-xuat-don-hang', '/vat-tu', '/nha-cung-cap'] },
+    duongChoPhep: ['/du-bao-ban', '/nhap-hang', '/don-dat-hang', '/de-xuat-don-hang', '/vat-tu', '/nha-cung-cap'] },
   { id: 'san_xuat', nhan: 'Sản xuất', bieuTuong: '🏭', canChiNhanh: true,
-    duongChoPhep: ['/san-xuat', '/ton-kho', '/kiem-ke', '/vat-tu'] },
+    duongChoPhep: ['/san-xuat', '/du-bao-ban', '/ton-kho', '/kiem-ke', '/vat-tu'] },
   { id: 'sale_b2b', nhan: 'Sale B2B', bieuTuong: '🤝', canChiNhanh: true,
     duongChoPhep: ['/khach-hang-b2b', '/co-hoi-ban-hang', '/don-hang-b2b', '/cong-no'] },
   { id: 'logistic', nhan: 'Logistics', bieuTuong: '🚛', canChiNhanh: true,
     duongChoPhep: ['/chuyen-giao-hang', '/phuong-tien', '/xuat-kho'] },
   { id: 'cua_hang', nhan: 'Cửa hàng (Bán hàng)', bieuTuong: '🏪', canChiNhanh: true,
-    duongChoPhep: ['/ban-le', '/ton-kho', '/kiem-ke', '/xuat-kho', '/vat-tu'] }
+    duongChoPhep: ['/ban-le', '/du-bao-ban', '/ton-kho', '/kiem-ke', '/xuat-kho', '/vat-tu'] }
 ]
 
 export default function Layout() {
