@@ -18,6 +18,8 @@ export default function NhapHang() {
   const [dangLuu, setDangLuu] = useState(false)
   const [nccId, setNccId] = useState('')
   const [soHdNcc, setSoHdNcc] = useState('')
+  const [donDatHangId, setDonDatHangId] = useState('')
+  const [donDatHangs, setDonDatHangs] = useState([])
   const [dongCt, setDongCt] = useState([{ ...DONG_TRONG }])
 
   const [xem, setXem] = useState(null)
@@ -27,18 +29,24 @@ export default function NhapHang() {
     if (!chiNhanhId) { setDangTai(false); return }
     setDangTai(true); setLoi(null)
     try {
-      const [p, n, v] = await Promise.all([
+      const [p, n, v, dd] = await Promise.all([
         supabase.from('phieu_nhap_kho')
-          .select('id, so_phieu, ngay_nhap, tong_tien, trang_thai, so_hoa_don_ncc, nha_cung_cap(ten_ncc)')
+          .select('id, so_phieu, ngay_nhap, tong_tien, trang_thai, so_hoa_don_ncc, don_dat_hang(so_don), nha_cung_cap(ten_ncc)')
           .eq('chi_nhanh_id', chiNhanhId)
           .order('ngay_nhap', { ascending: false }).limit(100),
         supabase.from('nha_cung_cap').select('id, ten_ncc')
           .eq('trang_thai', 'hoat_dong').order('ten_ncc'),
         supabase.from('vat_tu').select('id, ma_vat_tu, ten_vat_tu, don_vi_tinh(ma_dvt)')
-          .eq('trang_thai', 'hoat_dong').order('ten_vat_tu')
+          .eq('trang_thai', 'hoat_dong').order('ten_vat_tu'),
+        supabase.from('don_dat_hang_ncc')
+          .select('id, so_don, nha_cung_cap_id, nha_cung_cap(ten_ncc)')
+          .eq('chi_nhanh_id', chiNhanhId)
+          .in('trang_thai', ['da_gui', 'da_xac_nhan', 'nhan_mot_phan'])
+          .order('ngay_dat', { ascending: false })
       ])
-      for (const r of [p, n, v]) if (r.error) throw r.error
+      for (const r of [p, n, v, dd]) if (r.error) throw r.error
       setPhieu(p.data || []); setNccs(n.data || []); setVatTus(v.data || [])
+      setDonDatHangs(dd.data || [])
     } catch (e) { setLoi(e.message) } finally { setDangTai(false) }
   }, [chiNhanhId])
 
@@ -46,6 +54,33 @@ export default function NhapHang() {
 
   function suaDong(i, truong, gt) {
     setDongCt(d => d.map((r, j) => j === i ? { ...r, [truong]: gt } : r))
+  }
+
+  async function chonDonDatHang(id) {
+    setDonDatHangId(id)
+    if (!id) return
+    setLoi(null)
+    try {
+      const don = donDatHangs.find(d => d.id === id)
+      if (don) setNccId(don.nha_cung_cap_id)
+
+      const { data, error } = await supabase
+        .from('chi_tiet_don_dat_hang_ncc')
+        .select('vat_tu_id, so_luong_dat, so_luong_da_nhan, don_gia, he_so_quy_doi')
+        .eq('don_dat_hang_id', id)
+      if (error) throw error
+
+      const conLai = (data || [])
+        .map(r => ({
+          vat_tu_id: r.vat_tu_id,
+          so_luong: String(Number(r.so_luong_dat) - Number(r.so_luong_da_nhan)),
+          don_gia: String(Math.round(Number(r.don_gia) / (Number(r.he_so_quy_doi) || 1))),
+          han_su_dung: ''
+        }))
+        .filter(r => Number(r.so_luong) > 0)
+
+      setDongCt(conLai.length ? conLai : [{ ...DONG_TRONG }])
+    } catch (e) { setLoi(e.message) }
   }
 
   async function luuPhieu() {
@@ -58,7 +93,8 @@ export default function NhapHang() {
         .insert({
           chi_nhanh_id: chiNhanhId,
           nha_cung_cap_id: nccId || null,
-          so_hoa_don_ncc: soHdNcc || null
+          so_hoa_don_ncc: soHdNcc || null,
+          don_dat_hang_id: donDatHangId || null
         })
         .select('id').single()
       if (e1) throw e1
@@ -74,7 +110,7 @@ export default function NhapHang() {
       )
       if (e2) throw e2
 
-      setMoTao(false); setNccId(''); setSoHdNcc(''); setDongCt([{ ...DONG_TRONG }])
+      setMoTao(false); setNccId(''); setSoHdNcc(''); setDonDatHangId(''); setDongCt([{ ...DONG_TRONG }])
       await napDs()
     } catch (e) { setLoi(e.message) } finally { setDangLuu(false) }
   }
@@ -125,6 +161,8 @@ export default function NhapHang() {
               { ten: 'Ngày', render: r => ngayGio(r.ngay_nhap) },
               { ten: 'Nhà cung cấp', render: r => r.nha_cung_cap?.ten_ncc || '—' },
               { ten: 'HĐ NCC', render: r => r.so_hoa_don_ncc || '—' },
+              { ten: 'Đơn đặt hàng', render: r => r.don_dat_hang?.so_don
+                  ? <code className="small">{r.don_dat_hang.so_don}</code> : '—' },
               { ten: 'Tổng tiền', lop: 'text-end', render: r => tien(r.tong_tien) },
               { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai} /> },
               { ten: '', lop: 'text-end', render: r => (
@@ -146,13 +184,26 @@ export default function NhapHang() {
       >
         <div className="row g-3 mb-3">
           <div className="col-md-6">
+            <label className="form-label">Đơn đặt hàng NCC (không bắt buộc)</label>
+            <select className="form-select" value={donDatHangId} onChange={e => chonDonDatHang(e.target.value)}>
+              <option value="">— Nhập hàng không qua đơn đặt —</option>
+              {donDatHangs.map(d => (
+                <option key={d.id} value={d.id}>{d.so_don} — {d.nha_cung_cap?.ten_ncc}</option>
+              ))}
+            </select>
+            {donDatHangId && (
+              <div className="form-text">Đã nạp các dòng còn thiếu từ đơn đặt hàng — có thể sửa lại số lượng/giá.</div>
+            )}
+          </div>
+          <div className="col-md-3">
             <label className="form-label">Nhà cung cấp</label>
-            <select className="form-select" value={nccId} onChange={e => setNccId(e.target.value)}>
+            <select className="form-select" value={nccId} onChange={e => setNccId(e.target.value)}
+              disabled={!!donDatHangId}>
               <option value="">— Chọn —</option>
               {nccs.map(n => <option key={n.id} value={n.id}>{n.ten_ncc}</option>)}
             </select>
           </div>
-          <div className="col-md-6">
+          <div className="col-md-3">
             <label className="form-label">Số hóa đơn NCC</label>
             <input className="form-control" value={soHdNcc} onChange={e => setSoHdNcc(e.target.value)} />
           </div>
@@ -199,8 +250,16 @@ export default function NhapHang() {
             </tbody>
           </table>
         </div>
-        <button className="btn btn-sm btn-outline-secondary"
-          onClick={() => setDongCt([...dongCt, { ...DONG_TRONG }])}>+ Thêm dòng</button>
+        <div className="d-flex justify-content-between align-items-center">
+          <button className="btn btn-sm btn-outline-secondary"
+            onClick={() => setDongCt([...dongCt, { ...DONG_TRONG }])}>+ Thêm dòng</button>
+          <div className="text-end">
+            <span className="text-secondary small me-2">Tổng tiền dự kiến</span>
+            <span className="fs-5 fw-bold">
+              {tien(dongCt.reduce((s, d) => s + (Number(d.so_luong) || 0) * (Number(d.don_gia) || 0), 0))}
+            </span>
+          </div>
+        </div>
 
         <div className="alert alert-info small mt-3 mb-0">
           Điền <strong>hạn sử dụng</strong> để hệ thống tự tạo lô — xuất kho sau này sẽ theo

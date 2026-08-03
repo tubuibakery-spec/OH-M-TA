@@ -11,6 +11,11 @@ const HINH_THUC = [
   { gt: 'vi_dien_tu', nhan: 'Ví điện tử' }
 ]
 
+const KENH_BAN = [
+  { gt: 'tai_cho', nhan: 'Tại chỗ' },
+  { gt: 'online', nhan: 'Online' }
+]
+
 const DONG_TRONG = { vat_tu_id: '', so_luong: '1', don_gia: '' }
 
 export default function BanLe() {
@@ -23,9 +28,14 @@ export default function BanLe() {
   const [moTao, setMoTao] = useState(false)
   const [dangLuu, setDangLuu] = useState(false)
   const [hinhThuc, setHinhThuc] = useState('tien_mat')
+  const [kenhBan, setKenhBan] = useState('tai_cho')
   const [giamGia, setGiamGia] = useState('0')
   const [khuyenMaiId, setKhuyenMaiId] = useState('')
   const [khuyenMais, setKhuyenMais] = useState([])
+  const [khachHangId, setKhachHangId] = useState('')
+  const [khachHangs, setKhachHangs] = useState([])
+  const [moKhachMoi, setMoKhachMoi] = useState(false)
+  const [khachMoi, setKhachMoi] = useState({ ten_khach_hang: '', so_dien_thoai: '' })
   const [gioHang, setGioHang] = useState([{ ...DONG_TRONG }])
 
   const [xem, setXem] = useState(null)
@@ -36,9 +46,9 @@ export default function BanLe() {
     setDangTai(true); setLoi(null)
     try {
       const homNayIso = new Date().toISOString().slice(0, 10)
-      const [h, v, km] = await Promise.all([
+      const [h, v, km, kh] = await Promise.all([
         supabase.from('hoa_don_ban')
-          .select('id, so_hoa_don, ngay_ban, tong_tien_hang, giam_gia, thanh_tien, tong_thanh_toan, hinh_thuc_thanh_toan, trang_thai')
+          .select('id, so_hoa_don, ngay_ban, tong_tien_hang, giam_gia, thanh_tien, tong_thanh_toan, hinh_thuc_thanh_toan, kenh_ban, trang_thai, khach_hang(ten_khach_hang)')
           .eq('chi_nhanh_id', chiNhanhId)
           .order('ngay_ban', { ascending: false }).limit(100),
         supabase.from('vat_tu')
@@ -50,12 +60,16 @@ export default function BanLe() {
           .in('ap_dung_kenh', ['ban_le', 'ca_hai'])
           .lte('ap_dung_tu', homNayIso)
           .or(`ap_dung_den.is.null,ap_dung_den.gte.${homNayIso}`)
-          .order('ten_ctkm')
+          .order('ten_ctkm'),
+        supabase.from('khach_hang').select('id, ma_khach_hang, ten_khach_hang, so_dien_thoai')
+          .order('ten_khach_hang').limit(500)
       ])
       if (h.error) throw h.error
       if (v.error) throw v.error
       if (km.error) throw km.error
+      if (kh.error) throw kh.error
       setHoaDon(h.data || []); setVatTus(v.data || []); setKhuyenMais(km.data || [])
+      setKhachHangs(kh.data || [])
     } catch (e) { setLoi(e.message) } finally { setDangTai(false) }
   }, [chiNhanhId])
 
@@ -84,6 +98,25 @@ export default function BanLe() {
     setGiamGia(String(Math.min(goiY, tongTamTinh)))
   }, [khuyenMaiId, khuyenMais, tongTamTinh])
 
+  async function taoKhachMoi() {
+    if (!khachMoi.ten_khach_hang.trim()) { setLoi('Chưa điền tên khách hàng.'); return }
+    setLoi(null)
+    try {
+      const ma = 'KH' + Date.now().toString().slice(-8)
+      const { data, error } = await supabase.from('khach_hang')
+        .insert({
+          ma_khach_hang: ma,
+          ten_khach_hang: khachMoi.ten_khach_hang.trim(),
+          so_dien_thoai: khachMoi.so_dien_thoai || null
+        })
+        .select('id, ten_khach_hang, so_dien_thoai').single()
+      if (error) throw error
+      setKhachHangs(ds => [...ds, data].sort((a, b) => a.ten_khach_hang.localeCompare(b.ten_khach_hang, 'vi')))
+      setKhachHangId(data.id)
+      setMoKhachMoi(false); setKhachMoi({ ten_khach_hang: '', so_dien_thoai: '' })
+    } catch (e) { setLoi(e.message) }
+  }
+
   async function thanhToan() {
     const hopLe = gioHang.filter(d => d.vat_tu_id && Number(d.so_luong) > 0)
     if (!hopLe.length) { setLoi('Giỏ hàng trống.'); return }
@@ -94,8 +127,10 @@ export default function BanLe() {
         .insert({
           chi_nhanh_id: chiNhanhId,
           hinh_thuc_thanh_toan: hinhThuc,
+          kenh_ban: kenhBan,
           giam_gia: Number(giamGia || 0),
-          khuyen_mai_id: khuyenMaiId || null
+          khuyen_mai_id: khuyenMaiId || null,
+          khach_hang_id: khachHangId || null
         })
         .select('id, so_hoa_don').single()
       if (e1) throw e1
@@ -111,7 +146,7 @@ export default function BanLe() {
       if (e2) throw e2
 
       setMoTao(false); setGioHang([{ ...DONG_TRONG }]); setGiamGia('0')
-      setKhuyenMaiId(''); setHinhThuc('tien_mat')
+      setKhuyenMaiId(''); setKhachHangId(''); setHinhThuc('tien_mat'); setKenhBan('tai_cho')
       await napDs()
     } catch (e) { setLoi(e.message) } finally { setDangLuu(false) }
   }
@@ -159,6 +194,7 @@ export default function BanLe() {
                 </button>
               ) },
               { ten: 'Giờ', render: r => ngayGio(r.ngay_ban) },
+              { ten: 'Khách hàng', render: r => r.khach_hang?.ten_khach_hang || '—' },
               { ten: 'Tổng tiền', lop: 'text-end', render: r => tien(r.tong_thanh_toan ?? r.thanh_tien) },
               { ten: 'Thanh toán', render: r =>
                   HINH_THUC.find(h => h.gt === r.hinh_thuc_thanh_toan)?.nhan || r.hinh_thuc_thanh_toan },
@@ -179,6 +215,30 @@ export default function BanLe() {
         onDong={() => setMoTao(false)}
         onLuu={thanhToan} dangLuu={dangLuu} nhanLuu="Thanh toán"
       >
+        <div className="row g-3 mb-3">
+          <div className="col-md-8">
+            <label className="form-label">Khách hàng (không bắt buộc)</label>
+            <div className="d-flex gap-2">
+              <select className="form-select" value={khachHangId} onChange={e => setKhachHangId(e.target.value)}>
+                <option value="">— Khách lẻ, không lưu thông tin —</option>
+                {khachHangs.map(k => (
+                  <option key={k.id} value={k.id}>
+                    {k.ten_khach_hang}{k.so_dien_thoai ? ` — ${k.so_dien_thoai}` : ''}
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="btn btn-outline-secondary text-nowrap"
+                onClick={() => setMoKhachMoi(true)}>+ Khách mới</button>
+            </div>
+          </div>
+          <div className="col-md-4">
+            <label className="form-label">Kênh bán</label>
+            <select className="form-select" value={kenhBan} onChange={e => setKenhBan(e.target.value)}>
+              {KENH_BAN.map(k => <option key={k.gt} value={k.gt}>{k.nhan}</option>)}
+            </select>
+          </div>
+        </div>
+
         <table className="table table-sm align-middle">
           <thead className="table-light">
             <tr>
@@ -264,6 +324,24 @@ export default function BanLe() {
             { ten: 'Thành tiền', lop: 'text-end', render: r => tien(r.thanh_tien) }
           ]}
         />
+      </Modal>
+
+      <Modal
+        mo={moKhachMoi} tieuDe="Thêm khách hàng mới"
+        onDong={() => setMoKhachMoi(false)} onLuu={taoKhachMoi} nhanLuu="Thêm"
+      >
+        <div className="row g-3">
+          <div className="col-12">
+            <label className="form-label">Tên khách hàng *</label>
+            <input className="form-control" value={khachMoi.ten_khach_hang}
+              onChange={e => setKhachMoi({ ...khachMoi, ten_khach_hang: e.target.value })} autoFocus />
+          </div>
+          <div className="col-12">
+            <label className="form-label">Số điện thoại</label>
+            <input className="form-control" value={khachMoi.so_dien_thoai}
+              onChange={e => setKhachMoi({ ...khachMoi, so_dien_thoai: e.target.value })} />
+          </div>
+        </div>
       </Modal>
     </Trang>
   )
