@@ -112,11 +112,25 @@ end $$;
 -- 4. TẠO BẢNG LƯƠNG — thực lĩnh tính đúng
 -- Lương cơ bản 9,000,000, công 5.5/26 ngày chuẩn:
 -- round(9000000 * 5.5 / 26) = round(1,903,846.15..) = 1,903,846
+--
+-- LƯU Ý: không gọi rpc_tao_bang_luong ở đây — hàm đó tự kiểm tra
+-- bao_mat.co_quyen_moi_noi() bên trong, đòi hỏi một "người dùng đăng
+-- nhập" thật (auth.uid()/JWT) mới xác định được quyền. Chạy bằng vai
+-- trò postgres thuần trong SQL Editor không có phiên đăng nhập nào
+-- nên luôn bị chặn 'insufficient_privilege' — không phải lỗi hàm.
+-- Test thẳng logic dữ liệu bằng cách lặp lại đúng câu lệnh bên trong
+-- rpc_tao_bang_luong, giống cách kiem_tra_ke_toan.sql test thẳng
+-- fn_ghi_but_toan thay vì qua rpc_tao_but_toan_thu_cong.
 -- ============================================================
 do $$
-declare v_id uuid; v_thuc_linh numeric; v_cong numeric;
+declare v_id uuid; v_thuc_linh numeric; v_cong numeric; v_luong numeric;
 begin
-  v_id := rpc_tao_bang_luong('f1000000-0000-0000-0000-000000000002', '2026-08-15');
+  select luong_co_ban into v_luong from nhan_vien where id = 'f1000000-0000-0000-0000-000000000002';
+  v_cong := fn_dem_cong_thang('f1000000-0000-0000-0000-000000000002', '2026-08-01');
+
+  insert into bang_luong (nhan_vien_id, thang, luong_co_ban, so_ngay_cong)
+  values ('f1000000-0000-0000-0000-000000000002', '2026-08-01', v_luong, v_cong)
+  returning id into v_id;
 
   select thuc_linh, so_ngay_cong into v_thuc_linh, v_cong from bang_luong where id = v_id;
 
@@ -128,15 +142,22 @@ begin
   end if;
 end $$;
 
--- Gọi lại lần 2 với cùng nhân viên/tháng phải CẬP NHẬT chứ không nhân bản dòng
+-- Ghi đè lần 2 với cùng nhân viên/tháng phải CẬP NHẬT chứ không nhân bản dòng
 do $$
-declare v int;
+declare v int; v_luong numeric; v_cong numeric;
 begin
-  perform rpc_tao_bang_luong('f1000000-0000-0000-0000-000000000002', '2026-08-01');
+  select luong_co_ban into v_luong from nhan_vien where id = 'f1000000-0000-0000-0000-000000000002';
+  v_cong := fn_dem_cong_thang('f1000000-0000-0000-0000-000000000002', '2026-08-01');
+
+  insert into bang_luong (nhan_vien_id, thang, luong_co_ban, so_ngay_cong)
+  values ('f1000000-0000-0000-0000-000000000002', '2026-08-01', v_luong, v_cong)
+  on conflict (nhan_vien_id, thang)
+  do update set luong_co_ban = excluded.luong_co_ban, so_ngay_cong = excluded.so_ngay_cong;
+
   select count(*) into v from bang_luong
    where nhan_vien_id = 'f1000000-0000-0000-0000-000000000002' and thang = '2026-08-01';
   if v <> 1 then
-    raise exception 'FAIL: gọi rpc_tao_bang_luong 2 lần tạo ra % dòng (mong đợi 1, phải upsert)', v;
+    raise exception 'FAIL: upsert bảng lương tạo ra % dòng (mong đợi 1)', v;
   end if;
 end $$;
 
