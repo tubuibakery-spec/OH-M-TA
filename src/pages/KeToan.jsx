@@ -1,39 +1,87 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useApp } from '../context/AppContext'
 import { Trang, Bang, DangTai, Loi, The, Modal } from '../components/Chung'
-import { tien, ngay } from '../lib/dinhDang'
+import { tien, ngay, homNay } from '../lib/dinhDang'
 
 const LOAI_TK = {
   tai_san: 'Tài sản', no_phai_tra: 'Nợ phải trả', von_chu_so_huu: 'Vốn chủ sở hữu',
   doanh_thu: 'Doanh thu', chi_phi: 'Chi phí'
 }
 
+const DONG_TRONG = { so_hieu: '', no: '', co: '' }
+
 export default function KeToan() {
+  const { chiNhanhs, coQuyen } = useApp()
   const [canDoiThu, setCanDoiThu] = useState([])
   const [laiLo, setLaiLo] = useState([])
   const [canDoiKeToan, setCanDoiKeToan] = useState([])
+  const [taiKhoans, setTaiKhoans] = useState([])
   const [dangTai, setDangTai] = useState(true)
   const [loi, setLoi] = useState(null)
 
   const [xemSoCai, setXemSoCai] = useState(null)
   const [soCai, setSoCai] = useState([])
 
+  const [moNhap, setMoNhap] = useState(false)
+  const [dangLuu, setDangLuu] = useState(false)
+  const [ngayHachToan, setNgayHachToan] = useState(homNay())
+  const [dienGiai, setDienGiai] = useState('')
+  const [chiNhanhChon, setChiNhanhChon] = useState('')
+  const [dong, setDong] = useState([{ ...DONG_TRONG }, { ...DONG_TRONG }])
+
   const nap = useCallback(async () => {
     setDangTai(true); setLoi(null)
     try {
-      const [cdt, ll, cdkt] = await Promise.all([
+      const [cdt, ll, cdkt, tk] = await Promise.all([
         supabase.from('bang_can_doi_thu_nghiem').select('*').order('so_hieu'),
         supabase.from('bao_cao_lai_lo').select('*').order('thang', { ascending: false }),
-        supabase.from('bang_can_doi_ke_toan').select('*')
+        supabase.from('bang_can_doi_ke_toan').select('*'),
+        supabase.from('he_thong_tai_khoan').select('so_hieu, ten_tai_khoan, loai').eq('dang_su_dung', true).order('so_hieu')
       ])
       if (cdt.error) throw cdt.error
       if (ll.error) throw ll.error
       if (cdkt.error) throw cdkt.error
+      if (tk.error) throw tk.error
       setCanDoiThu(cdt.data || []); setLaiLo(ll.data || []); setCanDoiKeToan(cdkt.data || [])
+      setTaiKhoans(tk.data || [])
     } catch (e) { setLoi(e.message) } finally { setDangTai(false) }
   }, [])
 
   useEffect(() => { nap() }, [nap])
+
+  function moModalNhap() {
+    setNgayHachToan(homNay()); setDienGiai(''); setChiNhanhChon('')
+    setDong([{ ...DONG_TRONG }, { ...DONG_TRONG }])
+    setMoNhap(true)
+  }
+
+  function suaDong(i, truong, gt) {
+    setDong(d => d.map((r, j) => j === i ? { ...r, [truong]: gt } : r))
+  }
+
+  const tongNo = dong.reduce((s, r) => s + (Number(r.no) || 0), 0)
+  const tongCo = dong.reduce((s, r) => s + (Number(r.co) || 0), 0)
+  const canDoi = Math.abs(tongNo - tongCo) < 1 && tongNo > 0
+  const dongHopLe = dong.length >= 2 && dong.every(r =>
+    r.so_hieu && !(Number(r.no) > 0 && Number(r.co) > 0) && (Number(r.no) > 0 || Number(r.co) > 0)
+  )
+
+  async function luuButToan() {
+    setDangLuu(true); setLoi(null)
+    try {
+      const p_dong = dong.map(r => ({ so_hieu: r.so_hieu, no: Number(r.no || 0), co: Number(r.co || 0) }))
+      const { error } = await supabase.rpc('rpc_tao_but_toan_thu_cong', {
+        p_ngay: ngayHachToan,
+        p_dien_giai: dienGiai || null,
+        p_chi_nhanh_id: chiNhanhChon || null,
+        p_dong
+      })
+      if (error) throw error
+      setMoNhap(false)
+      await nap()
+    } catch (e) { setLoi(e.message) } finally { setDangLuu(false) }
+  }
 
   async function moSoCai(tk) {
     setXemSoCai(tk); setSoCai([])
@@ -64,8 +112,14 @@ export default function KeToan() {
     return { thang: t, doanhThu, chiPhi, laiLo: doanhThu - chiPhi }
   })
 
+  const duocNhap = coQuyen('tai_chinh', 'tao')
+
   return (
-    <Trang tieuDe="Kế toán" mota="Sổ cái kép — bút toán tự động từ nhập hàng, bán hàng, thu/chi công nợ và chi phí">
+    <Trang tieuDe="Kế toán" mota="Sổ cái kép — bút toán tự động từ nhập hàng, bán hàng, thu/chi công nợ và chi phí"
+      hanhDong={duocNhap && (
+        <button className="btn btn-primary" onClick={moModalNhap}>+ Nhập bút toán</button>
+      )}
+    >
       <Loi loi={loi} onDong={() => setLoi(null)} />
 
       <div className="row g-3 mb-4">
@@ -146,6 +200,88 @@ export default function KeToan() {
             { ten: 'Có', lop: 'text-end', render: r => r.co > 0 ? tien(r.co) : '—' }
           ]}
         />
+      </Modal>
+
+      <Modal
+        mo={moNhap} rong tieuDe="Nhập bút toán thủ công"
+        onDong={() => setMoNhap(false)}
+        onLuu={dongHopLe && canDoi ? luuButToan : null}
+        nhanLuu="Lưu bút toán" dangLuu={dangLuu}
+      >
+        <div className="row g-3 mb-3">
+          <div className="col-md-3">
+            <label className="form-label">Ngày hạch toán</label>
+            <input type="date" className="form-control" value={ngayHachToan}
+              onChange={e => setNgayHachToan(e.target.value)} />
+          </div>
+          <div className="col-md-5">
+            <label className="form-label">Diễn giải</label>
+            <input className="form-control" value={dienGiai}
+              onChange={e => setDienGiai(e.target.value)} />
+          </div>
+          <div className="col-md-4">
+            <label className="form-label">Chi nhánh</label>
+            <select className="form-select" value={chiNhanhChon} onChange={e => setChiNhanhChon(e.target.value)}>
+              <option value="">— Toàn công ty (không gắn chi nhánh) —</option>
+              {chiNhanhs.map(c => <option key={c.id} value={c.id}>{c.ten_chi_nhanh}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <table className="table table-sm align-middle">
+          <thead className="table-light">
+            <tr>
+              <th style={{ minWidth: 220 }}>Tài khoản</th>
+              <th style={{ width: 140 }} className="text-end">Nợ</th>
+              <th style={{ width: 140 }} className="text-end">Có</th>
+              <th style={{ width: 40 }} />
+            </tr>
+          </thead>
+          <tbody>
+            {dong.map((r, i) => (
+              <tr key={i}>
+                <td>
+                  <select className="form-select form-select-sm" value={r.so_hieu}
+                    onChange={e => suaDong(i, 'so_hieu', e.target.value)}>
+                    <option value="">— Chọn tài khoản —</option>
+                    {taiKhoans.map(tk => (
+                      <option key={tk.so_hieu} value={tk.so_hieu}>{tk.so_hieu} — {tk.ten_tai_khoan}</option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <input type="number" min="0" className="form-control form-control-sm text-end"
+                    value={r.no} onChange={e => suaDong(i, 'no', e.target.value)} />
+                </td>
+                <td>
+                  <input type="number" min="0" className="form-control form-control-sm text-end"
+                    value={r.co} onChange={e => suaDong(i, 'co', e.target.value)} />
+                </td>
+                <td>
+                  <button className="btn btn-sm btn-outline-danger"
+                    onClick={() => setDong(dong.filter((_, j) => j !== i))}
+                    disabled={dong.length <= 2}>×</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className={canDoi ? '' : 'table-danger'}>
+              <td className="fw-semibold text-end">Tổng cộng</td>
+              <td className="text-end fw-semibold">{tien(tongNo)}</td>
+              <td className="text-end fw-semibold">{tien(tongCo)}</td>
+              <td />
+            </tr>
+          </tfoot>
+        </table>
+        <button className="btn btn-sm btn-outline-secondary mb-2"
+          onClick={() => setDong([...dong, { ...DONG_TRONG }])}>+ Thêm dòng</button>
+
+        {!canDoi && (
+          <div className="alert alert-warning small mb-0">
+            Tổng Nợ và Tổng Có phải bằng nhau (và lớn hơn 0) mới lưu được.
+          </div>
+        )}
       </Modal>
     </Trang>
   )
