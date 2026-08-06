@@ -43,6 +43,11 @@ export default function DonDatHang() {
     await napDs()
   }
 
+  async function huyDon(d) {
+    if (!confirm(`Hủy đơn đặt hàng ${d.so_don}?`)) return
+    await doiTrangThai(d, 'da_huy')
+  }
+
   const duocSua = coQuyen('mua_hang', 'sua')
 
   return (
@@ -67,13 +72,20 @@ export default function DonDatHang() {
               { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai} /> },
               { ten: '', lop: 'text-end', render: r => {
                 if (!duocSua) return null
-                if (r.trang_thai === 'nhap') {
-                  return <button className="btn btn-sm btn-primary" onClick={() => doiTrangThai(r, 'da_gui')}>Gửi NCC</button>
-                }
-                if (r.trang_thai === 'da_gui') {
-                  return <button className="btn btn-sm btn-outline-primary" onClick={() => doiTrangThai(r, 'da_xac_nhan')}>NCC xác nhận</button>
-                }
-                return null
+                const daKetThuc = ['hoan_thanh', 'da_huy'].includes(r.trang_thai)
+                return (
+                  <div className="d-flex gap-1 justify-content-end">
+                    {r.trang_thai === 'nhap' && (
+                      <button className="btn btn-sm btn-primary" onClick={() => doiTrangThai(r, 'da_gui')}>Gửi NCC</button>
+                    )}
+                    {r.trang_thai === 'da_gui' && (
+                      <button className="btn btn-sm btn-outline-primary" onClick={() => doiTrangThai(r, 'da_xac_nhan')}>NCC xác nhận</button>
+                    )}
+                    {!daKetThuc && (
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => huyDon(r)}>Hủy</button>
+                    )}
+                  </div>
+                )
               } }
             ]}
           />

@@ -124,6 +124,15 @@ export default function NhapHang() {
     await napDs()
   }
 
+  async function huy(p) {
+    if (!confirm(`Hủy phiếu ${p.so_phieu}? Phiếu chưa duyệt nên chưa cộng kho, hủy an toàn.`)) return
+    setLoi(null)
+    const { error } = await supabase
+      .from('phieu_nhap_kho').update({ trang_thai: 'da_huy' }).eq('id', p.id)
+    if (error) setLoi(error.message)
+    await napDs()
+  }
+
   async function moXem(p) {
     setXem(p); setCtXem([])
     const { data, error } = await supabase
@@ -136,6 +145,7 @@ export default function NhapHang() {
 
   const duocTao = coQuyen('mua_hang', 'tao')
   const duocDuyet = coQuyen('mua_hang', 'duyet')
+  const duocSua = coQuyen('mua_hang', 'sua')
 
   return (
     <Trang
@@ -165,10 +175,11 @@ export default function NhapHang() {
                   ? <code className="small">{r.don_dat_hang.so_don}</code> : '—' },
               { ten: 'Tổng tiền', lop: 'text-end', render: r => tien(r.tong_tien) },
               { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai} /> },
-              { ten: '', lop: 'text-end', render: r => (
-                r.trang_thai === 'nhap' && duocDuyet
-                  ? <button className="btn btn-sm btn-success" onClick={() => duyet(r)}>Duyệt</button>
-                  : null
+              { ten: '', lop: 'text-end', render: r => r.trang_thai === 'nhap' && (
+                <div className="d-flex gap-1 justify-content-end">
+                  {duocDuyet && <button className="btn btn-sm btn-success" onClick={() => duyet(r)}>Duyệt</button>}
+                  {duocSua && <button className="btn btn-sm btn-outline-danger" onClick={() => huy(r)}>Hủy</button>}
+                </div>
               ) }
             ]}
           />

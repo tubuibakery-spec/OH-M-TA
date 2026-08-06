@@ -11,7 +11,7 @@ const LOAI_XUAT = [
   { gt: 'khac', nhan: 'Khác' }
 ]
 
-const DONG_TRONG = { vat_tu_id: '', so_luong: '' }
+const DONG_TRONG = { vat_tu_id: '', so_luong: '', don_gia: '' }
 
 export default function XuatKho() {
   const { chiNhanhId, chiNhanhs, coQuyen } = useApp()
@@ -19,12 +19,13 @@ export default function XuatKho() {
   const [vatTus, setVatTus] = useState([])
   const [lyDos, setLyDos] = useState([])
   const [nccs, setNccs] = useState([])
+  const [phieuNhapGocs, setPhieuNhapGocs] = useState([])
   const [dangTai, setDangTai] = useState(true)
   const [loi, setLoi] = useState(null)
 
   const [moTao, setMoTao] = useState(false)
   const [dangLuu, setDangLuu] = useState(false)
-  const [form, setForm] = useState({ loai_xuat: 'dieu_chuyen', kho_nhan_id: '', ly_do_huy_id: '', nha_cung_cap_id: '' })
+  const [form, setForm] = useState({ loai_xuat: 'dieu_chuyen', kho_nhan_id: '', ly_do_huy_id: '', nha_cung_cap_id: '', phieu_nhap_goc_id: '' })
   const [dongCt, setDongCt] = useState([{ ...DONG_TRONG }])
 
   const tenChiNhanh = id => chiNhanhs.find(c => c.id === id)?.ten_chi_nhanh || '—'
@@ -50,6 +51,16 @@ export default function XuatKho() {
 
   useEffect(() => { napDs() }, [napDs])
 
+  useEffect(() => {
+    if (form.loai_xuat !== 'tra_ncc' || !form.nha_cung_cap_id) { setPhieuNhapGocs([]); return }
+    supabase.from('phieu_nhap_kho')
+      .select('id, so_phieu, tong_tien')
+      .eq('nha_cung_cap_id', form.nha_cung_cap_id)
+      .eq('trang_thai', 'da_duyet')
+      .order('ngay_nhap', { ascending: false }).limit(20)
+      .then(({ data, error }) => { if (error) setLoi(error.message); setPhieuNhapGocs(data || []) })
+  }, [form.loai_xuat, form.nha_cung_cap_id])
+
   async function luuPhieu() {
     const hopLe = dongCt.filter(d => d.vat_tu_id && Number(d.so_luong) > 0)
     if (!hopLe.length) { setLoi('Cần ít nhất một dòng có vật tư và số lượng > 0.'); return }
@@ -63,7 +74,8 @@ export default function XuatKho() {
         loai_xuat: form.loai_xuat,
         kho_nhan_id: form.loai_xuat === 'dieu_chuyen' ? form.kho_nhan_id : null,
         ly_do_huy_id: form.loai_xuat === 'huy_hang' ? (form.ly_do_huy_id || null) : null,
-        nha_cung_cap_id: form.loai_xuat === 'tra_ncc' ? (form.nha_cung_cap_id || null) : null
+        nha_cung_cap_id: form.loai_xuat === 'tra_ncc' ? (form.nha_cung_cap_id || null) : null,
+        phieu_nhap_goc_id: form.loai_xuat === 'tra_ncc' ? (form.phieu_nhap_goc_id || null) : null
       }).select('id').single()
       if (e1) throw e1
 
@@ -71,13 +83,14 @@ export default function XuatKho() {
         hopLe.map(d => ({
           phieu_xuat_id: p.id,
           vat_tu_id: d.vat_tu_id,
-          so_luong: Number(d.so_luong)
+          so_luong: Number(d.so_luong),
+          don_gia: form.loai_xuat === 'tra_ncc' ? Number(d.don_gia || 0) : null
         }))
       )
       if (e2) throw e2
 
       setMoTao(false)
-      setForm({ loai_xuat: 'dieu_chuyen', kho_nhan_id: '', ly_do_huy_id: '', nha_cung_cap_id: '' })
+      setForm({ loai_xuat: 'dieu_chuyen', kho_nhan_id: '', ly_do_huy_id: '', nha_cung_cap_id: '', phieu_nhap_goc_id: '' })
       setDongCt([{ ...DONG_TRONG }])
       await napDs()
     } catch (e) { setLoi(e.message) } finally { setDangLuu(false) }
@@ -183,9 +196,20 @@ export default function XuatKho() {
             <div className="col-md-6">
               <label className="form-label">Trả cho nhà cung cấp</label>
               <select className="form-select" value={form.nha_cung_cap_id}
-                onChange={e => setForm({ ...form, nha_cung_cap_id: e.target.value })}>
+                onChange={e => setForm({ ...form, nha_cung_cap_id: e.target.value, phieu_nhap_goc_id: '' })}>
                 <option value="">— Chọn —</option>
                 {nccs.map(n => <option key={n.id} value={n.id}>{n.ten_ncc}</option>)}
+              </select>
+            </div>
+          )}
+
+          {form.loai_xuat === 'tra_ncc' && form.nha_cung_cap_id && (
+            <div className="col-md-6">
+              <label className="form-label">Phiếu nhập gốc (không bắt buộc)</label>
+              <select className="form-select" value={form.phieu_nhap_goc_id}
+                onChange={e => setForm({ ...form, phieu_nhap_goc_id: e.target.value })}>
+                <option value="">— Không gắn phiếu nhập cụ thể —</option>
+                {phieuNhapGocs.map(p => <option key={p.id} value={p.id}>{p.so_phieu}</option>)}
               </select>
             </div>
           )}
@@ -196,6 +220,7 @@ export default function XuatKho() {
             <tr>
               <th style={{ minWidth: 240 }}>Vật tư</th>
               <th style={{ width: 140 }}>Số lượng</th>
+              {form.loai_xuat === 'tra_ncc' && <th style={{ width: 140 }}>Đơn giá</th>}
               <th style={{ width: 40 }} />
             </tr>
           </thead>
@@ -216,6 +241,13 @@ export default function XuatKho() {
                     value={d.so_luong}
                     onChange={e => setDongCt(dongCt.map((r, j) => j === i ? { ...r, so_luong: e.target.value } : r))} />
                 </td>
+                {form.loai_xuat === 'tra_ncc' && (
+                  <td>
+                    <input type="number" step="1" min="0" className="form-control form-control-sm"
+                      value={d.don_gia}
+                      onChange={e => setDongCt(dongCt.map((r, j) => j === i ? { ...r, don_gia: e.target.value } : r))} />
+                  </td>
+                )}
                 <td>
                   <button className="btn btn-sm btn-outline-danger"
                     onClick={() => setDongCt(dongCt.filter((_, j) => j !== i))}
