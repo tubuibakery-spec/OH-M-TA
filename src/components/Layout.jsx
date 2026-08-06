@@ -36,6 +36,7 @@ const MENU = [
   { duong: '/cong-no-ncc', nhan: 'Công nợ phải trả NCC', icon: 'bi-wallet2', module: 'cong_no', nhom: 'TÀI CHÍNH' },
   { duong: '/bao-cao', nhan: 'Báo cáo', icon: 'bi-bar-chart-line', module: 'tai_chinh', nhom: 'TÀI CHÍNH' },
   { duong: '/ke-toan', nhan: 'Kế toán', icon: 'bi-journal-text', module: 'tai_chinh', nhom: 'TÀI CHÍNH' },
+  { duong: '/so-quy', nhan: 'Sổ quỹ tiền mặt & NH', icon: 'bi-cash-coin', module: 'tai_chinh', nhom: 'TÀI CHÍNH' },
 
   { duong: '/chuyen-giao-hang', nhan: 'Chuyến giao hàng', icon: 'bi-signpost-split', module: 'logistics', nhom: 'LOGISTICS' },
   { duong: '/phuong-tien', nhan: 'Phương tiện', icon: 'bi-truck-front', module: 'logistics', nhom: 'LOGISTICS' },
@@ -58,9 +59,9 @@ const PHONG_BAN = [
   // Chỉ báo cáo/chỉ tiêu tổng hợp toàn chuỗi — KHÔNG hiện màn hình tác
   // nghiệp (nhập hàng, bán lẻ, đơn hàng...) của từng phòng ban.
   { id: 'ban_gd', nhan: 'Ban Giám đốc', bieuTuong: '👔', canChiNhanh: false,
-    duongChoPhep: ['/bao-cao', '/ke-toan', '/cong-no', '/cong-no-ncc', '/quan-tri-nguoi-dung'] },
+    duongChoPhep: ['/bao-cao', '/ke-toan', '/so-quy', '/cong-no', '/cong-no-ncc', '/quan-tri-nguoi-dung'] },
   { id: 'ke_toan', nhan: 'Kế toán', bieuTuong: '🧾', canChiNhanh: false,
-    duongChoPhep: ['/ke-toan', '/cong-no', '/cong-no-ncc', '/bao-cao'] },
+    duongChoPhep: ['/ke-toan', '/so-quy', '/cong-no', '/cong-no-ncc', '/bao-cao'] },
   { id: 'hr', nhan: 'Nhân sự', bieuTuong: '👤', canChiNhanh: false,
     duongChoPhep: ['/nhan-vien', '/cham-cong', '/nghi-phep', '/bang-luong'] },
   { id: 'thu_mua', nhan: 'Thu mua', bieuTuong: '🛍️', canChiNhanh: true,

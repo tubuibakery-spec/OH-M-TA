@@ -24,6 +24,7 @@ import PhuongTien from './pages/PhuongTien'
 import ChuyenGiaoHang from './pages/ChuyenGiaoHang'
 import CoHoiBanHang from './pages/CoHoiBanHang'
 import KeToan from './pages/KeToan'
+import SoQuyTienMat from './pages/SoQuyTienMat'
 import DuBaoBan from './pages/DuBaoBan'
 import KhuyenMai from './pages/KhuyenMai'
 import ChamCong from './pages/ChamCong'
@@ -85,6 +86,7 @@ function Router() {
         <Route path="chuyen-giao-hang" element={<ChuyenGiaoHang />} />
         <Route path="co-hoi-ban-hang" element={<CoHoiBanHang />} />
         <Route path="ke-toan" element={<KeToan />} />
+        <Route path="so-quy" element={<SoQuyTienMat />} />
         <Route path="du-bao-ban" element={<DuBaoBan />} />
         <Route path="khuyen-mai" element={<KhuyenMai />} />
         <Route path="cham-cong" element={<ChamCong />} />
