@@ -2,6 +2,12 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 
+const ICON_LOAI_CHI_NHANH = {
+  bep_trung_tam: '🏭',
+  cua_hang: '🏪',
+  kho_tong: '🏬'
+}
+
 const MENU = [
   { duong: '/', nhan: 'Tổng quan', icon: 'bi-speedometer2', module: null, nhom: 'TỔNG QUAN' },
 
@@ -193,10 +199,12 @@ export default function Layout() {
                 className="form-select form-select-sm w-auto"
                 value={chiNhanhId || ''}
                 onChange={e => setChiNhanhId(e.target.value)}
-                title="Chi nhánh đang làm việc"
+                title="Địa điểm đang làm việc — bao gồm cửa hàng, bếp trung tâm, kho tổng"
               >
                 {chiNhanhs.map(c => (
-                  <option key={c.id} value={c.id}>{c.ten_chi_nhanh}</option>
+                  <option key={c.id} value={c.id}>
+                    {ICON_LOAI_CHI_NHANH[c.loai_chi_nhanh] || '📍'} {c.ten_chi_nhanh}
+                  </option>
                 ))}
               </select>
             )}
@@ -213,7 +221,8 @@ export default function Layout() {
         </main>
 
         <footer className="border-top py-3 text-center text-secondary small bg-white">
-          OH! MÊ TA · {phongBan.nhan}{canChonChiNhanh && chiNhanh ? ` · ${chiNhanh.ten_chi_nhanh}` : ''}
+          OH! MÊ TA · {phongBan.nhan}
+          {canChonChiNhanh && chiNhanh ? ` · ${ICON_LOAI_CHI_NHANH[chiNhanh.loai_chi_nhanh] || '📍'} ${chiNhanh.ten_chi_nhanh}` : ''}
         </footer>
       </div>
     </div>
