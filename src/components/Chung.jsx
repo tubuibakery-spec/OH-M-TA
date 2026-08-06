@@ -57,7 +57,7 @@ export function Trang({ tieuDe, mota, hanhDong, children }) {
     <div>
       <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
-          <h1 className="h4 mb-0">{tieuDe}</h1>
+          <h1 className="h4 fw-bold mb-0">{tieuDe}</h1>
           {mota && <div className="text-secondary small mt-1">{mota}</div>}
         </div>
         {hanhDong && <div className="d-flex gap-2">{hanhDong}</div>}
@@ -99,7 +99,7 @@ export function Modal({ tieuDe, mo, onDong, onLuu, nhanLuu = 'Lưu', dangLuu, ro
 export function The({ nhan, gt, mau = 'primary', phu }) {
   return (
     <div className="col-6 col-lg-3">
-      <div className="card h-100 border-0 shadow-sm">
+      <div className={`card h-100 border-0 border-start border-4 border-${mau} shadow-sm`}>
         <div className="card-body">
           <div className="text-secondary small text-uppercase">{nhan}</div>
           <div className={`fs-3 fw-semibold text-${mau}`}>{gt}</div>

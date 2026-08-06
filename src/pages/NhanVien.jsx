@@ -8,10 +8,15 @@ const VAI_TRO = {
   admin: 'Quản trị', quan_ly: 'Quản lý', bep: 'Bếp', thu_ngan: 'Thu ngân', kho: 'Kho'
 }
 
+const LOAI_HOP_DONG = {
+  thu_viec: 'Thử việc', thoi_vu: 'Thời vụ', chinh_thuc: 'Chính thức'
+}
+
 const MOI = {
   ma_nv: '', ho_ten: '', chi_nhanh_id: '', vai_tro: 'bep',
   ngay_sinh: '', cccd: '', dia_chi: '', so_dien_thoai: '', email: '',
-  ngay_vao_lam: '', luong_co_ban: '0', so_tai_khoan_ngan_hang: '', ten_ngan_hang: ''
+  ngay_vao_lam: '', luong_co_ban: '0', so_tai_khoan_ngan_hang: '', ten_ngan_hang: '',
+  loai_hop_dong: 'chinh_thuc', ngay_ky_hd_chinh_thuc: '', so_nguoi_phu_thuoc: '0'
 }
 
 export default function NhanVien() {
@@ -50,7 +55,10 @@ export default function NhanVien() {
         ngay_vao_lam: form.ngay_vao_lam || null,
         luong_co_ban: Number(form.luong_co_ban || 0),
         so_tai_khoan_ngan_hang: form.so_tai_khoan_ngan_hang || null,
-        ten_ngan_hang: form.ten_ngan_hang || null
+        ten_ngan_hang: form.ten_ngan_hang || null,
+        loai_hop_dong: form.loai_hop_dong,
+        ngay_ky_hd_chinh_thuc: form.ngay_ky_hd_chinh_thuc || null,
+        so_nguoi_phu_thuoc: Number(form.so_nguoi_phu_thuoc || 0)
       }
       if (!ban.ma_nv || !ban.ho_ten) throw new Error('Cần điền mã và họ tên.')
       const { error } = form.id
@@ -78,7 +86,9 @@ export default function NhanVien() {
       chi_nhanh_id: data.chi_nhanh_id || '',
       ngay_sinh: data.ngay_sinh || '',
       ngay_vao_lam: data.ngay_vao_lam || '',
-      luong_co_ban: String(data.luong_co_ban ?? 0)
+      luong_co_ban: String(data.luong_co_ban ?? 0),
+      ngay_ky_hd_chinh_thuc: data.ngay_ky_hd_chinh_thuc || '',
+      so_nguoi_phu_thuoc: String(data.so_nguoi_phu_thuoc ?? 0)
     })
   }
 
@@ -212,6 +222,28 @@ export default function NhanVien() {
               <label className="form-label">Số tài khoản</label>
               <input className="form-control" value={form.so_tai_khoan_ngan_hang || ''}
                 onChange={e => setForm({ ...form, so_tai_khoan_ngan_hang: e.target.value })} />
+            </div>
+
+            <div className="col-12"><hr className="my-1" /></div>
+
+            <div className="col-md-4">
+              <label className="form-label">Loại hợp đồng</label>
+              <select className="form-select" value={form.loai_hop_dong}
+                onChange={e => setForm({ ...form, loai_hop_dong: e.target.value })}>
+                {Object.entries(LOAI_HOP_DONG).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Ngày ký HĐLĐ chính thức</label>
+              <input type="date" className="form-control" value={form.ngay_ky_hd_chinh_thuc || ''}
+                onChange={e => setForm({ ...form, ngay_ky_hd_chinh_thuc: e.target.value })} />
+              <div className="form-text">Chỉ áp dụng khi Loại hợp đồng = Chính thức — dùng để tính diện đóng BHXH bắt buộc.</div>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Số người phụ thuộc</label>
+              <input type="number" min="0" className="form-control" value={form.so_nguoi_phu_thuoc}
+                onChange={e => setForm({ ...form, so_nguoi_phu_thuoc: e.target.value })} />
+              <div className="form-text">Dùng để tính giảm trừ gia cảnh khi tính thuế TNCN (4.400.000đ/người/tháng).</div>
             </div>
           </div>
         )}

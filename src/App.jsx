@@ -12,10 +12,12 @@ import DonDatHang from './pages/DonDatHang'
 import VatTu from './pages/VatTu'
 import NhaCungCap from './pages/NhaCungCap'
 import BanLe from './pages/BanLe'
+import CaBanHang from './pages/CaBanHang'
 import SanXuat from './pages/SanXuat'
 import KhachHangB2B from './pages/KhachHangB2B'
 import DonHangB2B from './pages/DonHangB2B'
 import CongNo from './pages/CongNo'
+import CongNoNcc from './pages/CongNoNcc'
 import BaoCao from './pages/BaoCao'
 import NhanVien from './pages/NhanVien'
 import PhuongTien from './pages/PhuongTien'
@@ -28,6 +30,9 @@ import ChamCong from './pages/ChamCong'
 import NghiPhep from './pages/NghiPhep'
 import BangLuong from './pages/BangLuong'
 import { DangTai, Loi } from './components/Chung'
+import QuanTriNguoiDung from './pages/QuanTriNguoiDung'
+import BangGiaNhaCungCap from './pages/BangGiaNhaCungCap'
+import CongThucSanXuat from './pages/CongThucSanXuat'
 
 function Router() {
   const { session, dangTai, loi, dangXuat } = useApp()
@@ -68,10 +73,12 @@ function Router() {
         <Route path="vat-tu" element={<VatTu />} />
         <Route path="nha-cung-cap" element={<NhaCungCap />} />
         <Route path="ban-le" element={<BanLe />} />
+        <Route path="ca-ban-hang" element={<CaBanHang />} />
         <Route path="san-xuat" element={<SanXuat />} />
         <Route path="khach-hang-b2b" element={<KhachHangB2B />} />
         <Route path="don-hang-b2b" element={<DonHangB2B />} />
         <Route path="cong-no" element={<CongNo />} />
+        <Route path="cong-no-ncc" element={<CongNoNcc />} />
         <Route path="bao-cao" element={<BaoCao />} />
         <Route path="nhan-vien" element={<NhanVien />} />
         <Route path="phuong-tien" element={<PhuongTien />} />
@@ -83,6 +90,9 @@ function Router() {
         <Route path="cham-cong" element={<ChamCong />} />
         <Route path="nghi-phep" element={<NghiPhep />} />
         <Route path="bang-luong" element={<BangLuong />} />
+        <Route path="quan-tri-nguoi-dung" element={<QuanTriNguoiDung />} />
+        <Route path="bang-gia-ncc" element={<BangGiaNhaCungCap />} />
+        <Route path="cong-thuc-san-xuat" element={<CongThucSanXuat />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -40,13 +40,14 @@ export default function BanLe() {
 
   const [xem, setXem] = useState(null)
   const [ctXem, setCtXem] = useState([])
+  const [caDangMoId, setCaDangMoId] = useState(null)
 
   const napDs = useCallback(async () => {
     if (!chiNhanhId) { setDangTai(false); return }
     setDangTai(true); setLoi(null)
     try {
       const homNayIso = new Date().toISOString().slice(0, 10)
-      const [h, v, km, kh] = await Promise.all([
+      const [h, v, km, kh, ca] = await Promise.all([
         supabase.from('hoa_don_ban')
           .select('id, so_hoa_don, ngay_ban, tong_tien_hang, giam_gia, thanh_tien, tong_thanh_toan, hinh_thuc_thanh_toan, kenh_ban, trang_thai, khach_hang(ten_khach_hang)')
           .eq('chi_nhanh_id', chiNhanhId)
@@ -62,14 +63,17 @@ export default function BanLe() {
           .or(`ap_dung_den.is.null,ap_dung_den.gte.${homNayIso}`)
           .order('ten_ctkm'),
         supabase.from('khach_hang').select('id, ma_khach_hang, ten_khach_hang, so_dien_thoai')
-          .order('ten_khach_hang').limit(500)
+          .order('ten_khach_hang').limit(500),
+        supabase.from('ca_ban_hang').select('id')
+          .eq('chi_nhanh_id', chiNhanhId).eq('trang_thai', 'dang_mo').maybeSingle()
       ])
       if (h.error) throw h.error
       if (v.error) throw v.error
       if (km.error) throw km.error
       if (kh.error) throw kh.error
+      if (ca.error) throw ca.error
       setHoaDon(h.data || []); setVatTus(v.data || []); setKhuyenMais(km.data || [])
-      setKhachHangs(kh.data || [])
+      setKhachHangs(kh.data || []); setCaDangMoId(ca.data?.id || null)
     } catch (e) { setLoi(e.message) } finally { setDangTai(false) }
   }, [chiNhanhId])
 
@@ -130,7 +134,8 @@ export default function BanLe() {
           kenh_ban: kenhBan,
           giam_gia: Number(giamGia || 0),
           khuyen_mai_id: khuyenMaiId || null,
-          khach_hang_id: khachHangId || null
+          khach_hang_id: khachHangId || null,
+          ca_ban_hang_id: caDangMoId || null
         })
         .select('id, so_hoa_don').single()
       if (e1) throw e1
@@ -215,6 +220,11 @@ export default function BanLe() {
         onDong={() => setMoTao(false)}
         onLuu={thanhToan} dangLuu={dangLuu} nhanLuu="Thanh toán"
       >
+        {!caDangMoId && (
+          <div className="alert alert-warning small">
+            Chưa mở ca bán hàng — hóa đơn này sẽ không được tính vào đối soát tiền mặt cuối ca.
+          </div>
+        )}
         <div className="row g-3 mb-3">
           <div className="col-md-8">
             <label className="form-label">Khách hàng (không bắt buộc)</label>

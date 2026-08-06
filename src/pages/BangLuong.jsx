@@ -26,7 +26,7 @@ export default function BangLuong() {
     try {
       const [bl, nv] = await Promise.all([
         supabase.from('bang_luong')
-          .select('id, so_bang_luong, thang, luong_co_ban, so_ngay_cong, so_ngay_chuan, phu_cap, khau_tru, thuc_linh, trang_thai, nhan_vien(ho_ten, ma_nv)')
+          .select('id, so_bang_luong, thang, luong_co_ban, so_ngay_cong, so_ngay_chuan, phu_cap, khau_tru, dien_dong_bhxh, luong_dong_bhxh, bhxh_nld, thu_nhap_tinh_thue, thue_tncn, thuc_linh, trang_thai, nhan_vien(ho_ten, ma_nv)')
           .eq('thang', thangChon)
           .order('created_at', { ascending: false }),
         supabase.from('nhan_vien').select('id, ho_ten, ma_nv').eq('trang_thai', 'dang_lam_viec').order('ho_ten')
@@ -96,7 +96,7 @@ export default function BangLuong() {
   return (
     <Trang
       tieuDe="Bảng lương"
-      mota="Lương = lương cơ bản × (công/ngày chuẩn) + phụ cấp − khấu trừ. Chưa tính bảo hiểm/thuế TNCN."
+      mota="Lương = lương cơ bản × (công/ngày chuẩn) + phụ cấp − khấu trừ − BHXH (NLĐ) − thuế TNCN. BHXH áp dụng với nhân viên HĐLĐ chính thức đủ 1 tháng."
       hanhDong={duocTao && nvChuaCoBangLuong.length > 0 && (
         <button className="btn btn-primary" onClick={taoTatCa} disabled={dangXuLy}>
           {dangXuLy ? 'Đang tạo…' : `Tạo bảng lương cho ${nvChuaCoBangLuong.length} nhân viên còn thiếu`}
@@ -130,6 +130,8 @@ export default function BangLuong() {
               { ten: 'Lương cơ bản', lop: 'text-end', render: r => tien(r.luong_co_ban) },
               { ten: 'Phụ cấp', lop: 'text-end', render: r => tien(r.phu_cap) },
               { ten: 'Khấu trừ', lop: 'text-end', render: r => tien(r.khau_tru) },
+              { ten: 'BHXH (NLĐ)', lop: 'text-end', render: r => tien(r.bhxh_nld) },
+              { ten: 'Thuế TNCN', lop: 'text-end', render: r => tien(r.thue_tncn) },
               { ten: 'Thực lĩnh', lop: 'text-end', render: r => <strong>{tien(r.thuc_linh)}</strong> },
               { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai} /> },
               { ten: '', lop: 'text-end', render: r => duocSua && r.trang_thai === 'nhap' && (
@@ -157,6 +159,10 @@ export default function BangLuong() {
           <div className="row g-3">
             <div className="col-12 text-secondary small">
               Công: {so(xem.so_ngay_cong)} / {xem.so_ngay_chuan} ngày — Lương cơ bản: {tien(xem.luong_co_ban)}
+            </div>
+            <div className="col-12 text-secondary small">
+              BHXH (NLĐ): {tien(xem.bhxh_nld)} — Thuế TNCN: {tien(xem.thue_tncn)}
+              <div className="form-text mb-0">2 số này tự tính lại theo phụ cấp/khấu trừ mới sau khi bấm Lưu.</div>
             </div>
             <div className="col-md-6">
               <label className="form-label">Phụ cấp (₫)</label>
