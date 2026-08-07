@@ -28,6 +28,7 @@ import KeToan from './pages/KeToan'
 import SoQuyTienMat from './pages/SoQuyTienMat'
 import ChiPhi from './pages/ChiPhi'
 import TaiSanCoDinh from './pages/TaiSanCoDinh'
+import BaoCaoTaiChinh from './pages/BaoCaoTaiChinh'
 import DuBaoBan from './pages/DuBaoBan'
 import KhuyenMai from './pages/KhuyenMai'
 import ChamCong from './pages/ChamCong'
@@ -93,6 +94,7 @@ function Router() {
         <Route path="so-quy" element={<SoQuyTienMat />} />
         <Route path="chi-phi" element={<ChiPhi />} />
         <Route path="tai-san" element={<TaiSanCoDinh />} />
+        <Route path="bao-cao-tai-chinh" element={<BaoCaoTaiChinh />} />
         <Route path="du-bao-ban" element={<DuBaoBan />} />
         <Route path="khuyen-mai" element={<KhuyenMai />} />
         <Route path="cham-cong" element={<ChamCong />} />

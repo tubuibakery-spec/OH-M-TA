@@ -113,3 +113,12 @@ input, select, textarea {
 code {
   color: #6c757d;
 }
+
+@media print {
+  .sidebar, .topbar, footer, .no-print {
+    display: none !important;
+  }
+  .ohmeta-content {
+    margin-left: 0 !important;
+  }
+}
