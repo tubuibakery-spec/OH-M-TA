@@ -115,7 +115,7 @@ export default function KeToan() {
   const duocNhap = coQuyen('tai_chinh', 'tao')
 
   return (
-    <Trang tieuDe="Kế toán" mota="Sổ cái kép — bút toán tự động từ nhập hàng, bán hàng, thu/chi công nợ và chi phí"
+    <Trang tieuDe="Sổ cái" mota="Sổ cái kép — bút toán tự động từ nhập hàng, bán hàng, thu/chi công nợ và chi phí"
       hanhDong={duocNhap && (
         <button className="btn btn-primary" onClick={moModalNhap}>+ Nhập bút toán</button>
       )}

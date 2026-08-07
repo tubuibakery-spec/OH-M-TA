@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import Layout from './components/Layout'
 import DangNhap from './pages/DangNhap'
-import TongQuan from './pages/TongQuan'
 import TonKho from './pages/TonKho'
 import NhapHang from './pages/NhapHang'
 import XuatKho from './pages/XuatKho'
@@ -18,7 +17,6 @@ import KhachHangB2B from './pages/KhachHangB2B'
 import BangGiaB2B from './pages/BangGiaB2B'
 import DonHangB2B from './pages/DonHangB2B'
 import CongNo from './pages/CongNo'
-import CongNoNcc from './pages/CongNoNcc'
 import BaoCao from './pages/BaoCao'
 import NhanVien from './pages/NhanVien'
 import PhuongTien from './pages/PhuongTien'
@@ -68,7 +66,7 @@ function Router() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<TongQuan />} />
+        <Route index element={<BaoCao />} />
         <Route path="ton-kho" element={<TonKho />} />
         <Route path="nhap-hang" element={<NhapHang />} />
         <Route path="xuat-kho" element={<XuatKho />} />
@@ -84,7 +82,6 @@ function Router() {
         <Route path="bang-gia-b2b" element={<BangGiaB2B />} />
         <Route path="don-hang-b2b" element={<DonHangB2B />} />
         <Route path="cong-no" element={<CongNo />} />
-        <Route path="cong-no-ncc" element={<CongNoNcc />} />
         <Route path="bao-cao" element={<BaoCao />} />
         <Route path="nhan-vien" element={<NhanVien />} />
         <Route path="phuong-tien" element={<PhuongTien />} />

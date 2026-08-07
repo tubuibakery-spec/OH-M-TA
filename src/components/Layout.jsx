@@ -9,7 +9,7 @@ const ICON_LOAI_CHI_NHANH = {
 }
 
 const MENU = [
-  { duong: '/', nhan: 'Tổng quan', icon: 'bi-speedometer2', module: null, nhom: 'TỔNG QUAN' },
+  { duong: '/', nhan: 'Báo cáo', icon: 'bi-bar-chart-line', module: null, nhom: 'TỔNG QUAN' },
 
   { duong: '/ban-le', nhan: 'Bán lẻ', icon: 'bi-cart3', module: 'ban_le', nhom: 'BÁN HÀNG' },
   { duong: '/ca-ban-hang', nhan: 'Ca bán hàng', icon: 'bi-clock-history', module: 'ban_le', nhom: 'BÁN HÀNG' },
@@ -34,9 +34,7 @@ const MENU = [
   { duong: '/don-hang-b2b', nhan: 'Đơn hàng B2B', icon: 'bi-file-earmark-text', module: 'b2b', nhom: 'B2B' },
 
   { duong: '/cong-no', nhan: 'Công nợ', icon: 'bi-cash-stack', module: 'cong_no', nhom: 'TÀI CHÍNH' },
-  { duong: '/cong-no-ncc', nhan: 'Công nợ phải trả NCC', icon: 'bi-wallet2', module: 'cong_no', nhom: 'TÀI CHÍNH' },
-  { duong: '/bao-cao', nhan: 'Báo cáo', icon: 'bi-bar-chart-line', module: 'tai_chinh', nhom: 'TÀI CHÍNH' },
-  { duong: '/ke-toan', nhan: 'Kế toán', icon: 'bi-journal-text', module: 'tai_chinh', nhom: 'TÀI CHÍNH' },
+  { duong: '/ke-toan', nhan: 'Sổ cái', icon: 'bi-journal-text', module: 'tai_chinh', nhom: 'TÀI CHÍNH' },
   { duong: '/so-quy', nhan: 'Sổ quỹ tiền mặt & NH', icon: 'bi-cash-coin', module: 'tai_chinh', nhom: 'TÀI CHÍNH' },
   { duong: '/chi-phi', nhan: 'Chi phí vận hành', icon: 'bi-receipt-cutoff', module: 'tai_chinh', nhom: 'TÀI CHÍNH' },
   { duong: '/tai-san', nhan: 'Tài sản cố định & CCDC', icon: 'bi-building-gear', module: 'tai_san', nhom: 'TÀI CHÍNH' },
@@ -63,9 +61,9 @@ const PHONG_BAN = [
   // Chỉ báo cáo/chỉ tiêu tổng hợp toàn chuỗi — KHÔNG hiện màn hình tác
   // nghiệp (nhập hàng, bán lẻ, đơn hàng...) của từng phòng ban.
   { id: 'ban_gd', nhan: 'Ban Giám đốc', bieuTuong: '👔', canChiNhanh: false,
-    duongChoPhep: ['/bao-cao', '/ke-toan', '/so-quy', '/chi-phi', '/tai-san', '/bao-cao-tai-chinh', '/cong-no', '/cong-no-ncc', '/quan-tri-nguoi-dung'] },
+    duongChoPhep: ['/ke-toan', '/so-quy', '/chi-phi', '/tai-san', '/bao-cao-tai-chinh', '/cong-no', '/quan-tri-nguoi-dung'] },
   { id: 'ke_toan', nhan: 'Kế toán', bieuTuong: '🧾', canChiNhanh: false,
-    duongChoPhep: ['/ke-toan', '/so-quy', '/chi-phi', '/tai-san', '/bao-cao-tai-chinh', '/cong-no', '/cong-no-ncc', '/bao-cao'] },
+    duongChoPhep: ['/ke-toan', '/so-quy', '/chi-phi', '/tai-san', '/bao-cao-tai-chinh', '/cong-no'] },
   { id: 'hr', nhan: 'Nhân sự', bieuTuong: '👤', canChiNhanh: false,
     duongChoPhep: ['/nhan-vien', '/cham-cong', '/nghi-phep', '/bang-luong'] },
   { id: 'thu_mua', nhan: 'Thu mua', bieuTuong: '🛍️', canChiNhanh: true,
@@ -94,13 +92,13 @@ export default function Layout() {
 
   const menuHienThi = MENU.filter(m => {
     if (m.module && !coQuyenMoiNoi(m.module, 'xem')) return false
-    if (m.duong === '/') return true   // Tổng quan luôn hiện, mọi phòng ban
+    if (m.duong === '/') return true   // Báo cáo (trang chủ) luôn hiện, mọi phòng ban
     if (!phongBan.duongChoPhep) return true   // Ban Giám đốc: hiện hết
     return phongBan.duongChoPhep.includes(m.duong)
   })
 
   // Đổi phòng ban mà trang đang xem không còn thuộc menu của phòng ban mới
-  // → tự điều hướng về Tổng quan, tránh kẹt lại ở trang cũ không liên quan.
+  // → tự điều hướng về trang chủ, tránh kẹt lại ở trang cũ không liên quan.
   useEffect(() => {
     const duongHopLe = menuHienThi.map(m => m.duong)
     if (!duongHopLe.includes(location.pathname)) {
