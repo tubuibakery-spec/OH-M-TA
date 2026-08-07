@@ -205,10 +205,16 @@ export default function BanLe() {
                   HINH_THUC.find(h => h.gt === r.hinh_thuc_thanh_toan)?.nhan || r.hinh_thuc_thanh_toan },
               { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai} /> },
               { ten: '', lop: 'text-end', render: r => duocSua && r.trang_thai === 'hoan_thanh' && (
-                <button className="btn btn-sm btn-outline-danger"
-                  onClick={() => doiTrangThai(r, 'da_huy', `Hủy hóa đơn ${r.so_hoa_don}? Kho sẽ được hoàn lại đúng lô đã xuất.`)}>
-                  Hủy
-                </button>
+                <div className="d-flex gap-1 justify-content-end">
+                  <button className="btn btn-sm btn-outline-warning"
+                    onClick={() => doiTrangThai(r, 'tra_hang', `Ghi nhận trả hàng cho hóa đơn ${r.so_hoa_don}? Kho sẽ được hoàn lại đúng lô đã xuất.`)}>
+                    Trả hàng
+                  </button>
+                  <button className="btn btn-sm btn-outline-danger"
+                    onClick={() => doiTrangThai(r, 'da_huy', `Hủy hóa đơn ${r.so_hoa_don}? Kho sẽ được hoàn lại đúng lô đã xuất.`)}>
+                    Hủy
+                  </button>
+                </div>
               ) }
             ]}
           />

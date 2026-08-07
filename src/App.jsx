@@ -15,6 +15,7 @@ import BanLe from './pages/BanLe'
 import CaBanHang from './pages/CaBanHang'
 import SanXuat from './pages/SanXuat'
 import KhachHangB2B from './pages/KhachHangB2B'
+import BangGiaB2B from './pages/BangGiaB2B'
 import DonHangB2B from './pages/DonHangB2B'
 import CongNo from './pages/CongNo'
 import CongNoNcc from './pages/CongNoNcc'
@@ -78,6 +79,7 @@ function Router() {
         <Route path="ca-ban-hang" element={<CaBanHang />} />
         <Route path="san-xuat" element={<SanXuat />} />
         <Route path="khach-hang-b2b" element={<KhachHangB2B />} />
+        <Route path="bang-gia-b2b" element={<BangGiaB2B />} />
         <Route path="don-hang-b2b" element={<DonHangB2B />} />
         <Route path="cong-no" element={<CongNo />} />
         <Route path="cong-no-ncc" element={<CongNoNcc />} />

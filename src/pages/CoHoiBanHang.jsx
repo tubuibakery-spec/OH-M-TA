@@ -20,7 +20,7 @@ const MOI = { khach_hang_b2b_id: '', ten_co_hoi: '', gia_tri_uoc_tinh: '', xac_s
 const HD_TRONG = { loai_hoat_dong: 'goi_dien', noi_dung: '', ngay_hen_tiep_theo: '' }
 
 export default function CoHoiBanHang() {
-  const { coQuyenMoiNoi } = useApp()
+  const { coQuyenMoiNoi, chiNhanhs } = useApp()
   const [coHois, setCoHois] = useState([])
   const [pipeline, setPipeline] = useState([])
   const [lichHen, setLichHen] = useState([])
@@ -37,11 +37,14 @@ export default function CoHoiBanHang() {
   const [hoatDongs, setHoatDongs] = useState([])
   const [hdMoi, setHdMoi] = useState({ ...HD_TRONG })
 
+  const [moThanhCong, setMoThanhCong] = useState(false)
+  const [chiNhanhChonTC, setChiNhanhChonTC] = useState('')
+
   const napDs = useCallback(async () => {
     setDangTai(true); setLoi(null)
     try {
       let q = supabase.from('co_hoi_ban_hang')
-        .select('id, ma_co_hoi, ten_co_hoi, gia_tri_uoc_tinh, giai_doan, xac_suat_phan_tram, ngay_du_kien_chot, khach_hang_b2b_id, khach_hang_b2b(ten_doanh_nghiep), nhan_vien(ho_ten)')
+        .select('id, ma_co_hoi, ten_co_hoi, gia_tri_uoc_tinh, giai_doan, xac_suat_phan_tram, ngay_du_kien_chot, khach_hang_b2b_id, don_hang_id, khach_hang_b2b(ten_doanh_nghiep), nhan_vien(ho_ten), don_hang_b2b(so_don_hang, trang_thai)')
         .order('created_at', { ascending: false })
       if (!hienCaDaDong) q = q.not('giai_doan', 'in', '(thanh_cong,that_bai)')
 
@@ -102,11 +105,34 @@ export default function CoHoiBanHang() {
       setXem(null); await napDs(); setDangXuLy(false)
       return
     }
-    if (gd === 'thanh_cong' && !confirm('Đánh dấu THÀNH CÔNG? Không thể đổi giai đoạn sau khi lưu.')) return
+    if (gd === 'thanh_cong') {
+      setChiNhanhChonTC(''); setMoThanhCong(true)
+      return
+    }
     setDangXuLy(true); setLoi(null)
     const { error } = await supabase.from('co_hoi_ban_hang').update({ giai_doan: gd }).eq('id', xem.id)
     if (error) setLoi(error.message)
     setXem(null); await napDs(); setDangXuLy(false)
+  }
+
+  async function xacNhanThanhCong() {
+    if (!chiNhanhChonTC) { setLoi('Chọn chi nhánh giao hàng.'); return }
+    setDangXuLy(true); setLoi(null)
+    try {
+      const { data: don, error: e1 } = await supabase.from('don_hang_b2b').insert({
+        khach_hang_b2b_id: xem.khach_hang_b2b_id,
+        chi_nhanh_giao_id: chiNhanhChonTC
+      }).select('id, so_don_hang').single()
+      if (e1) throw e1
+
+      const { error: e2 } = await supabase.from('co_hoi_ban_hang')
+        .update({ giai_doan: 'thanh_cong', don_hang_id: don.id }).eq('id', xem.id)
+      if (e2) throw e2
+
+      setMoThanhCong(false); setXem(null)
+      await napDs()
+      alert(`Đã tạo đơn hàng ${don.so_don_hang} — vào Đơn hàng B2B để thêm sản phẩm.`)
+    } catch (e) { setLoi(e.message) } finally { setDangXuLy(false) }
   }
 
   async function themHoatDong() {
@@ -262,6 +288,11 @@ export default function CoHoiBanHang() {
               <span className={`badge text-bg-${GIAI_DOAN[xem.giai_doan]?.[1] || 'secondary'}`}>
                 {GIAI_DOAN[xem.giai_doan]?.[0] || xem.giai_doan}
               </span>
+              {xem.don_hang_id && (
+                <span className="badge text-bg-light border text-dark">
+                  → Đơn hàng {xem.don_hang_b2b?.so_don_hang}
+                </span>
+              )}
               {dangMo && (
                 <div className="ms-auto d-flex gap-2">
                   {THU_TU_GIAI_DOAN.filter(g => g !== xem.giai_doan).map(g => (
@@ -319,6 +350,21 @@ export default function CoHoiBanHang() {
             )}
           </>
         )}
+      </Modal>
+
+      <Modal
+        mo={moThanhCong} tieuDe="Xác nhận thành công — tạo đơn hàng"
+        onDong={() => setMoThanhCong(false)} onLuu={xacNhanThanhCong} dangLuu={dangXuLy}
+        nhanLuu="Xác nhận & tạo đơn hàng"
+      >
+        <div className="mb-3 small text-secondary">
+          Cơ hội sẽ chuyển sang "Thành công" và tự tạo 1 đơn hàng B2B (chưa có sản phẩm) cho khách hàng này — vào Đơn hàng B2B để bổ sung chi tiết sau.
+        </div>
+        <label className="form-label">Chi nhánh giao hàng *</label>
+        <select className="form-select" value={chiNhanhChonTC} onChange={e => setChiNhanhChonTC(e.target.value)}>
+          <option value="">— Chọn chi nhánh —</option>
+          {chiNhanhs.map(c => <option key={c.id} value={c.id}>{c.ten_chi_nhanh}</option>)}
+        </select>
       </Modal>
     </Trang>
   )

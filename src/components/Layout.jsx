@@ -29,6 +29,7 @@ const MENU = [
   { duong: '/cong-thuc-san-xuat', nhan: 'Công thức sản xuất', icon: 'bi-diagram-3', module: 'cong_thuc', nhom: 'SẢN XUẤT' },
 
   { duong: '/khach-hang-b2b', nhan: 'Khách hàng B2B', icon: 'bi-briefcase', module: 'b2b', nhom: 'B2B' },
+  { duong: '/bang-gia-b2b', nhan: 'Bảng giá B2B', icon: 'bi-tags', module: 'b2b', nhom: 'B2B' },
   { duong: '/co-hoi-ban-hang', nhan: 'Cơ hội bán hàng', icon: 'bi-bullseye', module: 'b2b', nhom: 'B2B' },
   { duong: '/don-hang-b2b', nhan: 'Đơn hàng B2B', icon: 'bi-file-earmark-text', module: 'b2b', nhom: 'B2B' },
 
@@ -70,7 +71,7 @@ const PHONG_BAN = [
   { id: 'san_xuat', nhan: 'Sản xuất', bieuTuong: '🏭', canChiNhanh: true,
     duongChoPhep: ['/san-xuat', '/du-bao-ban', '/ton-kho', '/kiem-ke', '/vat-tu', '/cong-thuc-san-xuat'] },
   { id: 'sale_b2b', nhan: 'Sale B2B', bieuTuong: '🤝', canChiNhanh: true,
-    duongChoPhep: ['/khach-hang-b2b', '/co-hoi-ban-hang', '/don-hang-b2b', '/cong-no', '/khuyen-mai'] },
+    duongChoPhep: ['/khach-hang-b2b', '/bang-gia-b2b', '/co-hoi-ban-hang', '/don-hang-b2b', '/cong-no', '/khuyen-mai'] },
   { id: 'logistic', nhan: 'Logistics', bieuTuong: '🚛', canChiNhanh: true,
     duongChoPhep: ['/chuyen-giao-hang', '/phuong-tien', '/xuat-kho'] },
   { id: 'cua_hang', nhan: 'Cửa hàng (Bán hàng)', bieuTuong: '🏪', canChiNhanh: true,

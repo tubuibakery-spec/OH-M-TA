@@ -15,6 +15,9 @@ export default function CongNo() {
   const [hinhThuc, setHinhThuc] = useState('tien_mat')
   const [dangLuu, setDangLuu] = useState(false)
 
+  const [xemLichSu, setXemLichSu] = useState(null)
+  const [lichSuThu, setLichSuThu] = useState([])
+
   const nap = useCallback(async () => {
     setDangTai(true); setLoi(null)
     const { data, error } = await supabase
@@ -44,7 +47,27 @@ export default function CongNo() {
     } catch (e) { setLoi(e.message) } finally { setDangLuu(false) }
   }
 
+  async function huyHoaDon(hd) {
+    if (!confirm(`Hủy hóa đơn ${hd.so_hoa_don}? Công nợ khách hàng sẽ tự cập nhật lại.`)) return
+    setLoi(null)
+    const { error } = await supabase.from('hoa_don_b2b').update({ trang_thai: 'da_huy' }).eq('id', hd.id)
+    if (error) setLoi(error.message)
+    await nap()
+  }
+
+  async function moLichSu(hd) {
+    setXemLichSu(hd); setLichSuThu([])
+    const { data, error } = await supabase
+      .from('phieu_thu_cong_no')
+      .select('so_phieu_thu, ngay_thu, so_tien, hinh_thuc, ghi_chu')
+      .eq('hoa_don_b2b_id', hd.id)
+      .order('ngay_thu')
+    if (error) setLoi(error.message)
+    setLichSuThu(data || [])
+  }
+
   const duocThu = coQuyen('cong_no', 'tao')
+  const duocSua = coQuyen('cong_no', 'sua')
   const homNay = new Date().toISOString().slice(0, 10)
   const tongConLai = hoaDon.reduce((s, r) => s + Number(r.con_lai || 0), 0)
   const soQuaHan = hoaDon.filter(r => r.con_lai > 0 && r.han_thanh_toan < homNay).length
@@ -68,7 +91,11 @@ export default function CongNo() {
             dong={hoaDon}
             trong="Không có công nợ nào"
             cot={[
-              { ten: 'Số HĐ', render: r => r.so_hoa_don },
+              { ten: 'Số HĐ', render: r => (
+                <button className="btn btn-link p-0 text-decoration-none" onClick={() => moLichSu(r)}>
+                  {r.so_hoa_don}
+                </button>
+              ) },
               { ten: 'Khách hàng', render: r => r.khach_hang_b2b?.ten_doanh_nghiep },
               { ten: 'Ngày xuất', render: r => ngay(r.ngay_xuat_hoa_don) },
               { ten: 'Hạn thanh toán', render: r => (
@@ -82,10 +109,17 @@ export default function CongNo() {
                 <span className="fw-semibold">{tien(r.con_lai)}</span>
               ) },
               { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai_thanh_toan} /> },
-              { ten: '', lop: 'text-end', render: r => duocThu && r.con_lai > 0 && (
-                <button className="btn btn-sm btn-success" onClick={() => { setThu(r); setSoTien(String(r.con_lai)) }}>
-                  Ghi thu
-                </button>
+              { ten: '', lop: 'text-end', render: r => (
+                <div className="d-flex gap-1 justify-content-end">
+                  {duocThu && r.con_lai > 0 && (
+                    <button className="btn btn-sm btn-success" onClick={() => { setThu(r); setSoTien(String(r.con_lai)) }}>
+                      Ghi thu
+                    </button>
+                  )}
+                  {duocSua && Number(r.da_thanh_toan) === 0 && (
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => huyHoaDon(r)}>Hủy</button>
+                  )}
+                </div>
               ) }
             ]}
           />
@@ -116,6 +150,21 @@ export default function CongNo() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal mo={!!xemLichSu} tieuDe={`Lịch sử thu — ${xemLichSu?.so_hoa_don || ''}`} onDong={() => setXemLichSu(null)}>
+        <Bang
+          khoa="so_phieu_thu"
+          trong="Chưa có phiếu thu nào"
+          dong={lichSuThu}
+          cot={[
+            { ten: 'Số phiếu', render: r => r.so_phieu_thu },
+            { ten: 'Ngày thu', render: r => ngay(r.ngay_thu) },
+            { ten: 'Số tiền', lop: 'text-end', render: r => tien(r.so_tien) },
+            { ten: 'Hình thức', render: r => r.hinh_thuc === 'chuyen_khoan' ? 'Chuyển khoản' : 'Tiền mặt' },
+            { ten: 'Ghi chú', render: r => r.ghi_chu || '—' }
+          ]}
+        />
       </Modal>
     </Trang>
   )

@@ -147,21 +147,31 @@ export default function DonHangB2B() {
               { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai} /> },
               { ten: '', lop: 'text-end', render: r => {
                 if (!duocSua) return null
-                if (r.trang_thai === 'moi') {
-                  return <button className="btn btn-sm btn-primary"
-                    onClick={() => doiTrangThai(r, 'da_xac_nhan')}>Xác nhận</button>
-                }
-                if (r.trang_thai === 'da_xac_nhan') {
-                  return <button className="btn btn-sm btn-warning"
-                    onClick={() => doiTrangThai(r, 'dang_giao', `Xuất hàng đơn ${r.so_don_hang}? Kho sẽ bị trừ ngay theo FEFO.`)}>
-                    Giao hàng
-                  </button>
-                }
-                if (r.trang_thai === 'dang_giao') {
-                  return <button className="btn btn-sm btn-success"
-                    onClick={() => doiTrangThai(r, 'da_giao')}>Đã giao</button>
-                }
-                return null
+                const choHuyDuoc = ['moi', 'da_xac_nhan'].includes(r.trang_thai)
+                return (
+                  <div className="d-flex gap-1 justify-content-end">
+                    {r.trang_thai === 'moi' && (
+                      <button className="btn btn-sm btn-primary"
+                        onClick={() => doiTrangThai(r, 'da_xac_nhan')}>Xác nhận</button>
+                    )}
+                    {r.trang_thai === 'da_xac_nhan' && (
+                      <button className="btn btn-sm btn-warning"
+                        onClick={() => doiTrangThai(r, 'dang_giao', `Xuất hàng đơn ${r.so_don_hang}? Kho sẽ bị trừ ngay theo FEFO.`)}>
+                        Giao hàng
+                      </button>
+                    )}
+                    {r.trang_thai === 'dang_giao' && (
+                      <button className="btn btn-sm btn-success"
+                        onClick={() => doiTrangThai(r, 'da_giao')}>Đã giao</button>
+                    )}
+                    {choHuyDuoc && (
+                      <button className="btn btn-sm btn-outline-danger"
+                        onClick={() => doiTrangThai(r, 'da_huy', `Hủy đơn hàng ${r.so_don_hang}? Đơn chưa xuất kho nên hủy an toàn.`)}>
+                        Hủy
+                      </button>
+                    )}
+                  </div>
+                )
               } }
             ]}
           />
