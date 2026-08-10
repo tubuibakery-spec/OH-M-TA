@@ -25,6 +25,7 @@ export default function BaoCaoTaiChinh() {
   const [canDoiThu, setCanDoiThu] = useState([])
   const [dongKqkd, setDongKqkd] = useState([])
   const [nhatKy, setNhatKy] = useState([])
+  const [congTy, setCongTy] = useState(null)
   const [dangTai, setDangTai] = useState(true)
   const [loi, setLoi] = useState(null)
   const [dangKetChuyen, setDangKetChuyen] = useState(false)
@@ -32,19 +33,22 @@ export default function BaoCaoTaiChinh() {
   const nap = useCallback(async () => {
     setDangTai(true); setLoi(null)
     try {
-      const [cdt, kqkd, nk] = await Promise.all([
+      const [cdt, kqkd, nk, ct] = await Promise.all([
         supabase.from('bang_can_doi_thu_nghiem').select('*').order('so_hieu'),
         supabase.from('so_cai').select('so_hieu, no, co')
           .in('so_hieu', [...TK_DOANH_THU, ...TK_CHI_PHI])
           .gte('ngay_hach_toan', tuNgay).lte('ngay_hach_toan', denNgay),
         supabase.from('so_cai').select('*')
           .gte('ngay_hach_toan', tuNgay).lte('ngay_hach_toan', denNgay)
-          .order('ngay_hach_toan').order('so_but_toan').limit(500)
+          .order('ngay_hach_toan').order('so_but_toan').limit(500),
+        supabase.from('cau_hinh_cong_ty').select('*').eq('id', 1).maybeSingle()
       ])
       if (cdt.error) throw cdt.error
       if (kqkd.error) throw kqkd.error
       if (nk.error) throw nk.error
+      if (ct.error) throw ct.error
       setCanDoiThu(cdt.data || []); setDongKqkd(kqkd.data || []); setNhatKy(nk.data || [])
+      setCongTy(ct.data || null)
     } catch (e) { setLoi(e.message) } finally { setDangTai(false) }
   }, [tuNgay, denNgay])
 
@@ -89,12 +93,23 @@ export default function BaoCaoTaiChinh() {
   return (
     <Trang
       tieuDe="Báo cáo tài chính"
-      mota="Bảng cân đối kế toán (lũy kế tới hiện tại) + Kết quả kinh doanh & Nhật ký chung (theo khoảng ngày đã chọn)"
+      mota="Báo cáo tình hình tài chính (lũy kế tới hiện tại) + Kết quả kinh doanh & Nhật ký chung (theo khoảng ngày đã chọn)"
       hanhDong={
         <button className="btn btn-outline-secondary no-print" onClick={() => window.print()}>In báo cáo</button>
       }
     >
       <Loi loi={loi} onDong={() => setLoi(null)} />
+
+      {congTy && (congTy.ten_cong_ty || congTy.ma_so_thue) && (
+        <div className="text-center mb-3">
+          {congTy.ten_cong_ty && <div className="fw-bold">{congTy.ten_cong_ty}</div>}
+          <div className="small text-secondary">
+            {congTy.ma_so_thue && <>MST: {congTy.ma_so_thue}</>}
+            {congTy.ma_so_thue && congTy.dia_chi && ' — '}
+            {congTy.dia_chi}
+          </div>
+        </div>
+      )}
 
       <div className="card border-0 shadow-sm mb-3 no-print">
         <div className="card-body d-flex flex-wrap align-items-center gap-3">
@@ -119,7 +134,7 @@ export default function BaoCaoTaiChinh() {
       </div>
 
       <div className="card border-0 shadow-sm mb-3">
-        <div className="card-header bg-white fw-semibold">Bảng cân đối kế toán (tính đến hiện tại)</div>
+        <div className="card-header bg-white fw-semibold">Báo cáo tình hình tài chính (Mẫu số B01-DN, tính đến hiện tại)</div>
         <div className="card-body p-0">
           <div className="row g-0">
             <div className="col-md-6 border-end">
@@ -207,6 +222,7 @@ export default function BaoCaoTaiChinh() {
               { ten: 'Số CT', render: r => r.so_but_toan },
               { ten: 'Diễn giải', render: r => r.dien_giai },
               { ten: 'Tài khoản', render: r => `${r.so_hieu} — ${r.ten_tai_khoan}` },
+              { ten: 'Người lập', render: r => r.nguoi_lap_email || '—' },
               { ten: 'Nợ', lop: 'text-end', render: r => r.no > 0 ? tien(r.no) : '—' },
               { ten: 'Có', lop: 'text-end', render: r => r.co > 0 ? tien(r.co) : '—' }
             ]}

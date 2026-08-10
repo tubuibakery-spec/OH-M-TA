@@ -150,6 +150,7 @@ export default function SoQuyTienMat() {
               { ten: 'Số BT', render: r => r.so_but_toan },
               { ten: 'Diễn giải', render: r => r.dien_giai },
               { ten: 'Chi nhánh', render: r => r.ten_chi_nhanh || '—' },
+              { ten: 'Người lập', render: r => r.nguoi_lap_email || '—' },
               { ten: 'Thu', lop: 'text-end', render: r => r.no > 0 ? tien(r.no) : '—' },
               { ten: 'Chi', lop: 'text-end', render: r => r.co > 0 ? tien(r.co) : '—' },
               { ten: 'Tồn', lop: 'text-end', render: r => <span className="fw-semibold">{tien(r.ton)}</span> }

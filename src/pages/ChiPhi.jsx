@@ -32,7 +32,7 @@ export default function ChiPhi() {
     try {
       const [cp, lcp] = await Promise.all([
         supabase.from('chi_phi')
-          .select('id, so_tien, ngay_phat_sinh, mo_ta, chi_nhanh(ten_chi_nhanh), loai_chi_phi(ten_loai, nhom)')
+          .select('id, so_tien, ngay_phat_sinh, mo_ta, nguoi_lap_email, chi_nhanh(ten_chi_nhanh), loai_chi_phi(ten_loai, nhom)')
           .order('ngay_phat_sinh', { ascending: false }).limit(200),
         supabase.from('loai_chi_phi').select('id, ten_loai, nhom').order('ten_loai')
       ])
@@ -108,7 +108,8 @@ export default function ChiPhi() {
               ) },
               { ten: 'Chi nhánh', render: r => r.chi_nhanh?.ten_chi_nhanh || 'Toàn công ty' },
               { ten: 'Số tiền', lop: 'text-end', render: r => <span className="fw-semibold">{tien(r.so_tien)}</span> },
-              { ten: 'Mô tả', render: r => r.mo_ta || '—' }
+              { ten: 'Mô tả', render: r => r.mo_ta || '—' },
+              { ten: 'Người lập', render: r => r.nguoi_lap_email || '—' }
             ]}
           />
         </div>

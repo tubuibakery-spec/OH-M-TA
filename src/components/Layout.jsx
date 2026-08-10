@@ -51,7 +51,8 @@ const MENU = [
   { duong: '/nghi-phep', nhan: 'Nghỉ phép', icon: 'bi-calendar2-week', module: 'nhan_su', nhom: 'NHÂN SỰ' },
   { duong: '/bang-luong', nhan: 'Bảng lương', icon: 'bi-cash', module: 'nhan_su', nhom: 'NHÂN SỰ' },
 
-  { duong: '/quan-tri-nguoi-dung', nhan: 'Người dùng & phân quyền', icon: 'bi-shield-lock', module: 'he_thong', nhom: 'QUẢN TRỊ' }
+  { duong: '/quan-tri-nguoi-dung', nhan: 'Người dùng & phân quyền', icon: 'bi-shield-lock', module: 'he_thong', nhom: 'QUẢN TRỊ' },
+  { duong: '/cau-hinh-cong-ty', nhan: 'Cấu hình công ty', icon: 'bi-building', module: 'he_thong', nhom: 'QUẢN TRỊ' }
 ]
 
 // Phòng ban chỉ lọc MENU HIỂN THỊ — không phải phân quyền thật (đó là việc
@@ -61,7 +62,7 @@ const PHONG_BAN = [
   // Chỉ báo cáo/chỉ tiêu tổng hợp toàn chuỗi — KHÔNG hiện màn hình tác
   // nghiệp (nhập hàng, bán lẻ, đơn hàng...) của từng phòng ban.
   { id: 'ban_gd', nhan: 'Ban Giám đốc', bieuTuong: '👔', canChiNhanh: false,
-    duongChoPhep: ['/ke-toan', '/so-quy', '/chi-phi', '/tai-san', '/bao-cao-tai-chinh', '/cong-no', '/quan-tri-nguoi-dung'] },
+    duongChoPhep: ['/ke-toan', '/so-quy', '/chi-phi', '/tai-san', '/bao-cao-tai-chinh', '/cong-no', '/quan-tri-nguoi-dung', '/cau-hinh-cong-ty'] },
   { id: 'ke_toan', nhan: 'Kế toán', bieuTuong: '🧾', canChiNhanh: false,
     duongChoPhep: ['/ke-toan', '/so-quy', '/chi-phi', '/tai-san', '/bao-cao-tai-chinh', '/cong-no'] },
   { id: 'hr', nhan: 'Nhân sự', bieuTuong: '👤', canChiNhanh: false,

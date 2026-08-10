@@ -6,7 +6,7 @@ import { tien, ngay, homNay } from '../lib/dinhDang'
 
 const LOAI_TK = {
   tai_san: 'Tài sản', no_phai_tra: 'Nợ phải trả', von_chu_so_huu: 'Vốn chủ sở hữu',
-  doanh_thu: 'Doanh thu', chi_phi: 'Chi phí'
+  doanh_thu: 'Doanh thu', chi_phi: 'Chi phí', xac_dinh_kqkd: 'Xác định KQKD'
 }
 
 const DONG_TRONG = { so_hieu: '', no: '', co: '' }
@@ -196,6 +196,7 @@ export default function KeToan() {
             { ten: 'Ngày', render: r => ngay(r.ngay_hach_toan) },
             { ten: 'Diễn giải', render: r => r.dien_giai },
             { ten: 'Chi nhánh', render: r => r.ten_chi_nhanh || '—' },
+            { ten: 'Người lập', render: r => r.nguoi_lap_email || '—' },
             { ten: 'Nợ', lop: 'text-end', render: r => r.no > 0 ? tien(r.no) : '—' },
             { ten: 'Có', lop: 'text-end', render: r => r.co > 0 ? tien(r.co) : '—' }
           ]}

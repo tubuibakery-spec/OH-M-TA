@@ -59,7 +59,7 @@ function PhaiThu() {
     setXemLichSu(hd); setLichSuThu([])
     const { data, error } = await supabase
       .from('phieu_thu_cong_no')
-      .select('so_phieu_thu, ngay_thu, so_tien, hinh_thuc, ghi_chu')
+      .select('so_phieu_thu, ngay_thu, so_tien, hinh_thuc, ghi_chu, nguoi_lap_email')
       .eq('hoa_don_b2b_id', hd.id)
       .order('ngay_thu')
     if (error) setLoi(error.message)
@@ -163,6 +163,7 @@ function PhaiThu() {
             { ten: 'Ngày thu', render: r => ngay(r.ngay_thu) },
             { ten: 'Số tiền', lop: 'text-end', render: r => tien(r.so_tien) },
             { ten: 'Hình thức', render: r => r.hinh_thuc === 'chuyen_khoan' ? 'Chuyển khoản' : 'Tiền mặt' },
+            { ten: 'Người lập', render: r => r.nguoi_lap_email || '—' },
             { ten: 'Ghi chú', render: r => r.ghi_chu || '—' }
           ]}
         />
