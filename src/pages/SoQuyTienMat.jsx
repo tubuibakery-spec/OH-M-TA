@@ -142,7 +142,6 @@ export default function SoQuyTienMat() {
       {dangTai ? <DangTai /> : (
         <div className="card border-0 shadow-sm">
           <Bang
-            khoa="but_toan_id"
             trong="Không có phát sinh trong khoảng ngày này"
             dong={dsDong}
             cot={[

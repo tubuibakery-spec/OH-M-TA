@@ -188,7 +188,6 @@ export default function KeToan() {
 
       <Modal mo={!!xemSoCai} rong tieuDe={`Sổ cái — ${xemSoCai?.ten_tai_khoan || ''}`} onDong={() => setXemSoCai(null)}>
         <Bang
-          khoa="but_toan_id"
           trong="Tài khoản chưa có bút toán nào"
           dong={soCai}
           cot={[

@@ -18,6 +18,7 @@ export default function NhapHang() {
   const [dangLuu, setDangLuu] = useState(false)
   const [nccId, setNccId] = useState('')
   const [soHdNcc, setSoHdNcc] = useState('')
+  const [thueSuat, setThueSuat] = useState('0')
   const [donDatHangId, setDonDatHangId] = useState('')
   const [donDatHangs, setDonDatHangs] = useState([])
   const [dongCt, setDongCt] = useState([{ ...DONG_TRONG }])
@@ -31,7 +32,7 @@ export default function NhapHang() {
     try {
       const [p, n, v, dd] = await Promise.all([
         supabase.from('phieu_nhap_kho')
-          .select('id, so_phieu, ngay_nhap, tong_tien, trang_thai, so_hoa_don_ncc, don_dat_hang(so_don), nha_cung_cap(ten_ncc)')
+          .select('id, so_phieu, ngay_nhap, tong_tien, thue_suat, tien_thue, tong_thanh_toan, trang_thai, so_hoa_don_ncc, don_dat_hang:don_dat_hang_ncc(so_don), nha_cung_cap(ten_ncc)')
           .eq('chi_nhanh_id', chiNhanhId)
           .order('ngay_nhap', { ascending: false }).limit(100),
         supabase.from('nha_cung_cap').select('id, ten_ncc')
@@ -94,6 +95,7 @@ export default function NhapHang() {
           chi_nhanh_id: chiNhanhId,
           nha_cung_cap_id: nccId || null,
           so_hoa_don_ncc: soHdNcc || null,
+          thue_suat: Number(thueSuat) || 0,
           don_dat_hang_id: donDatHangId || null
         })
         .select('id').single()
@@ -110,7 +112,7 @@ export default function NhapHang() {
       )
       if (e2) throw e2
 
-      setMoTao(false); setNccId(''); setSoHdNcc(''); setDonDatHangId(''); setDongCt([{ ...DONG_TRONG }])
+      setMoTao(false); setNccId(''); setSoHdNcc(''); setThueSuat('0'); setDonDatHangId(''); setDongCt([{ ...DONG_TRONG }])
       await napDs()
     } catch (e) { setLoi(e.message) } finally { setDangLuu(false) }
   }
@@ -173,7 +175,11 @@ export default function NhapHang() {
               { ten: 'HĐ NCC', render: r => r.so_hoa_don_ncc || '—' },
               { ten: 'Đơn đặt hàng', render: r => r.don_dat_hang?.so_don
                   ? <code className="small">{r.don_dat_hang.so_don}</code> : '—' },
-              { ten: 'Tổng tiền', lop: 'text-end', render: r => tien(r.tong_tien) },
+              { ten: 'Tiền hàng', lop: 'text-end', render: r => tien(r.tong_tien) },
+              { ten: 'Thuế VAT', lop: 'text-end', render: r => `${r.thue_suat > 0 ? tien(r.tien_thue) : '—'}` },
+              { ten: 'Tổng thanh toán', lop: 'text-end', render: r => (
+                <span className="fw-semibold">{tien(r.tong_thanh_toan)}</span>
+              ) },
               { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai} /> },
               { ten: '', lop: 'text-end', render: r => r.trang_thai === 'nhap' && (
                 <div className="d-flex gap-1 justify-content-end">
@@ -217,6 +223,11 @@ export default function NhapHang() {
           <div className="col-md-3">
             <label className="form-label">Số hóa đơn NCC</label>
             <input className="form-control" value={soHdNcc} onChange={e => setSoHdNcc(e.target.value)} />
+          </div>
+          <div className="col-md-3">
+            <label className="form-label">Thuế suất VAT (%)</label>
+            <input type="number" min="0" max="100" step="1" className="form-control"
+              value={thueSuat} onChange={e => setThueSuat(e.target.value)} />
           </div>
         </div>
 
@@ -265,10 +276,19 @@ export default function NhapHang() {
           <button className="btn btn-sm btn-outline-secondary"
             onClick={() => setDongCt([...dongCt, { ...DONG_TRONG }])}>+ Thêm dòng</button>
           <div className="text-end">
-            <span className="text-secondary small me-2">Tổng tiền dự kiến</span>
-            <span className="fs-5 fw-bold">
-              {tien(dongCt.reduce((s, d) => s + (Number(d.so_luong) || 0) * (Number(d.don_gia) || 0), 0))}
-            </span>
+            {(() => {
+              const tienHang = dongCt.reduce((s, d) => s + (Number(d.so_luong) || 0) * (Number(d.don_gia) || 0), 0)
+              const tienThue = Math.round(tienHang * (Number(thueSuat) || 0) / 100)
+              return (
+                <>
+                  <div className="small text-secondary">
+                    Tiền hàng {tien(tienHang)}{Number(thueSuat) > 0 && <> — Thuế VAT {tien(tienThue)}</>}
+                  </div>
+                  <span className="text-secondary small me-2">Tổng thanh toán dự kiến</span>
+                  <span className="fs-5 fw-bold">{tien(tienHang + tienThue)}</span>
+                </>
+              )
+            })()}
           </div>
         </div>
 
