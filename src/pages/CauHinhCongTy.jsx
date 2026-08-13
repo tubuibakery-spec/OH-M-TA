@@ -5,7 +5,8 @@ import { Trang, DangTai, Loi } from '../components/Chung'
 
 const MOI = {
   ten_cong_ty: '', ma_so_thue: '', dia_chi: '',
-  dai_dien_phap_luat: '', chuc_vu_dai_dien: '', so_dien_thoai: '', don_vi_tien_te: 'VND'
+  dai_dien_phap_luat: '', chuc_vu_dai_dien: '', so_dien_thoai: '', don_vi_tien_te: 'VND',
+  han_muc_duyet_don_mua: ''
 }
 
 export default function CauHinhCongTy() {
@@ -20,7 +21,7 @@ export default function CauHinhCongTy() {
     setDangTai(true); setLoi(null)
     const { data, error } = await supabase.from('cau_hinh_cong_ty').select('*').eq('id', 1).maybeSingle()
     if (error) setLoi(error.message)
-    if (data) setForm({ ...MOI, ...data })
+    if (data) setForm({ ...MOI, ...data, han_muc_duyet_don_mua: data.han_muc_duyet_don_mua ?? '' })
     setDangTai(false)
   }, [])
 
@@ -41,7 +42,8 @@ export default function CauHinhCongTy() {
         dai_dien_phap_luat: form.dai_dien_phap_luat || null,
         chuc_vu_dai_dien: form.chuc_vu_dai_dien || null,
         so_dien_thoai: form.so_dien_thoai || null,
-        don_vi_tien_te: form.don_vi_tien_te || 'VND'
+        don_vi_tien_te: form.don_vi_tien_te || 'VND',
+        han_muc_duyet_don_mua: form.han_muc_duyet_don_mua === '' ? null : Number(form.han_muc_duyet_don_mua)
       }).eq('id', 1)
       if (error) throw error
       setLuuXong(true)
@@ -93,6 +95,12 @@ export default function CauHinhCongTy() {
               <label className="form-label">Đơn vị tiền tệ</label>
               <input className="form-control" value={form.don_vi_tien_te || 'VND'}
                 onChange={e => sua('don_vi_tien_te', e.target.value)} disabled={!duocSua} />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Hạn mức cần duyệt đơn mua hàng (₫)</label>
+              <input type="number" min="0" className="form-control" value={form.han_muc_duyet_don_mua}
+                onChange={e => sua('han_muc_duyet_don_mua', e.target.value)} disabled={!duocSua} />
+              <div className="form-text">Đơn có tổng tiền vượt mức này phải gửi duyệt trước khi gửi NCC. Để trống = không bắt buộc duyệt.</div>
             </div>
           </div>
 

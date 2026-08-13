@@ -22,6 +22,7 @@ const MENU = [
 
   { duong: '/du-bao-ban', nhan: 'Dự báo bán hàng', icon: 'bi-graph-up-arrow', module: 'du_bao', nhom: 'MUA HÀNG' },
   { duong: '/de-xuat-don-hang', nhan: 'Đề xuất đặt hàng', icon: 'bi-calculator', module: 'mua_hang', nhom: 'MUA HÀNG' },
+  { duong: '/yeu-cau-bao-gia', nhan: 'Yêu cầu báo giá', icon: 'bi-file-earmark-diff', module: 'mua_hang', nhom: 'MUA HÀNG' },
   { duong: '/don-dat-hang', nhan: 'Đơn đặt NCC', icon: 'bi-receipt', module: 'mua_hang', nhom: 'MUA HÀNG' },
   { duong: '/bang-gia-ncc', nhan: 'Bảng giá NCC', icon: 'bi-tag', module: 'mua_hang', nhom: 'MUA HÀNG' },
 
@@ -68,7 +69,7 @@ const PHONG_BAN = [
   { id: 'hr', nhan: 'Nhân sự', bieuTuong: '👤', canChiNhanh: false,
     duongChoPhep: ['/nhan-vien', '/cham-cong', '/nghi-phep', '/bang-luong'] },
   { id: 'thu_mua', nhan: 'Thu mua', bieuTuong: '🛍️', canChiNhanh: true,
-    duongChoPhep: ['/du-bao-ban', '/nhap-hang', '/don-dat-hang', '/de-xuat-don-hang', '/vat-tu', '/nha-cung-cap', '/bang-gia-ncc'] },
+    duongChoPhep: ['/du-bao-ban', '/nhap-hang', '/yeu-cau-bao-gia', '/don-dat-hang', '/de-xuat-don-hang', '/vat-tu', '/nha-cung-cap', '/bang-gia-ncc'] },
   { id: 'san_xuat', nhan: 'Sản xuất', bieuTuong: '🏭', canChiNhanh: true,
     duongChoPhep: ['/san-xuat', '/du-bao-ban', '/ton-kho', '/kiem-ke', '/vat-tu', '/cong-thuc-san-xuat'] },
   { id: 'sale_b2b', nhan: 'Sale B2B', bieuTuong: '🤝', canChiNhanh: true,

@@ -37,6 +37,7 @@ import QuanTriNguoiDung from './pages/QuanTriNguoiDung'
 import BangGiaNhaCungCap from './pages/BangGiaNhaCungCap'
 import CongThucSanXuat from './pages/CongThucSanXuat'
 import CauHinhCongTy from './pages/CauHinhCongTy'
+import YeuCauBaoGia from './pages/YeuCauBaoGia'
 
 function Router() {
   const { session, dangTai, loi, dangXuat } = useApp()
@@ -102,6 +103,7 @@ function Router() {
         <Route path="bang-gia-ncc" element={<BangGiaNhaCungCap />} />
         <Route path="cong-thuc-san-xuat" element={<CongThucSanXuat />} />
         <Route path="cau-hinh-cong-ty" element={<CauHinhCongTy />} />
+        <Route path="yeu-cau-bao-gia" element={<YeuCauBaoGia />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

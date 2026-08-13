@@ -42,7 +42,10 @@ const NHAN_TRANG_THAI = {
   nhan_mot_phan: ['Nhận một phần', 'warning'],
   hieu_luc: ['Hiệu lực', 'success'],
   tu_choi: ['Từ chối', 'danger'],
-  da_chi_tra: ['Đã chi trả', 'success']
+  da_chi_tra: ['Đã chi trả', 'success'],
+  da_chon_ncc: ['Đã chọn NCC', 'success'],
+  moi_gui: ['Mới gửi', 'secondary'],
+  da_bao_gia: ['Đã báo giá', 'success']
 }
 
 export function nhanTrangThai(tt) {

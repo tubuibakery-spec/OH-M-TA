@@ -6,12 +6,23 @@ import { tien } from '../lib/dinhDang'
 
 const MOI = {
   ma_ncc: '', ten_ncc: '', nguoi_lien_he: '', so_dien_thoai: '', dia_chi: '', mst: '',
-  thoi_gian_giao_ngay: '1', gia_tri_don_toi_thieu: '0', ngay_dat_trong_tuan: ''
+  thoi_gian_giao_ngay: '1', gia_tri_don_toi_thieu: '0', ngay_dat_trong_tuan: '', diem_danh_gia: ''
+}
+
+function doTinCay(uyTin) {
+  if (!uyTin || !uyTin.so_don_da_giao) return { nhan: 'Chưa đủ dữ liệu', mau: 'secondary' }
+  const tyLeTre = uyTin.so_don_giao_tre / uyTin.so_don_da_giao
+  const tongDaXong = uyTin.so_don_hoan_thanh + uyTin.so_don_huy
+  const tyLeHuy = tongDaXong ? uyTin.so_don_huy / tongDaXong : 0
+  if (tyLeTre > 0.2 || tyLeHuy > 0.15) return { nhan: 'Cần lưu ý', mau: 'danger' }
+  if (tyLeTre > 0.1 || tyLeHuy > 0.05) return { nhan: 'Khá', mau: 'warning' }
+  return { nhan: 'Tốt', mau: 'success' }
 }
 
 export default function NhaCungCap() {
   const { coQuyenMoiNoi } = useApp()
   const [ds, setDs] = useState([])
+  const [uyTins, setUyTins] = useState({})
   const [dangTai, setDangTai] = useState(true)
   const [loi, setLoi] = useState(null)
   const [form, setForm] = useState(null)
@@ -19,12 +30,16 @@ export default function NhaCungCap() {
 
   const nap = useCallback(async () => {
     setDangTai(true); setLoi(null)
-    const { data, error } = await supabase
-      .from('nha_cung_cap')
-      .select('id, ma_ncc, ten_ncc, nguoi_lien_he, so_dien_thoai, dia_chi, mst, trang_thai, thoi_gian_giao_ngay, gia_tri_don_toi_thieu, ngay_dat_trong_tuan')
-      .order('ten_ncc')
-    if (error) setLoi(error.message)
-    setDs(data || []); setDangTai(false)
+    const [ncc, ut] = await Promise.all([
+      supabase.from('nha_cung_cap')
+        .select('id, ma_ncc, ten_ncc, nguoi_lien_he, so_dien_thoai, dia_chi, mst, trang_thai, thoi_gian_giao_ngay, gia_tri_don_toi_thieu, ngay_dat_trong_tuan, diem_danh_gia')
+        .order('ten_ncc'),
+      supabase.from('diem_uy_tin_ncc').select('*')
+    ])
+    if (ncc.error) setLoi(ncc.error.message)
+    setDs(ncc.data || [])
+    setUyTins(Object.fromEntries((ut.data || []).map(u => [u.nha_cung_cap_id, u])))
+    setDangTai(false)
   }, [])
 
   useEffect(() => { nap() }, [nap])
@@ -41,7 +56,8 @@ export default function NhaCungCap() {
         mst: form.mst || null,
         thoi_gian_giao_ngay: Number(form.thoi_gian_giao_ngay || 1),
         gia_tri_don_toi_thieu: Number(form.gia_tri_don_toi_thieu || 0),
-        ngay_dat_trong_tuan: form.ngay_dat_trong_tuan || null
+        ngay_dat_trong_tuan: form.ngay_dat_trong_tuan || null,
+        diem_danh_gia: form.diem_danh_gia === '' ? null : Number(form.diem_danh_gia)
       }
       if (!ban.ma_ncc || !ban.ten_ncc) throw new Error('Cần điền mã và tên nhà cung cấp.')
       const { error } = form.id
@@ -82,13 +98,21 @@ export default function NhaCungCap() {
               { ten: 'Đơn tối thiểu', lop: 'text-end', render: r =>
                   Number(r.gia_tri_don_toi_thieu) > 0 ? tien(r.gia_tri_don_toi_thieu) : '—' },
               { ten: 'Ngày đặt', render: r => r.ngay_dat_trong_tuan || 'Mọi ngày' },
+              { ten: 'Đánh giá', render: r => r.diem_danh_gia != null ? `★ ${r.diem_danh_gia}` : '—' },
+              { ten: 'Độ tin cậy', render: r => {
+                const { nhan, mau } = doTinCay(uyTins[r.id])
+                return <span className={`badge text-bg-${mau}`} title={uyTins[r.id]
+                  ? `Hoàn thành: ${uyTins[r.id].so_don_hoan_thanh} · Hủy: ${uyTins[r.id].so_don_huy} · Giao trễ: ${uyTins[r.id].so_don_giao_tre}/${uyTins[r.id].so_don_da_giao}`
+                  : ''}>{nhan}</span>
+              } },
               { ten: '', lop: 'text-end', render: r => duocSua && (
                 <button className="btn btn-sm btn-outline-secondary"
                   onClick={() => setForm({
                     ...r,
                     thoi_gian_giao_ngay: String(r.thoi_gian_giao_ngay ?? 1),
                     gia_tri_don_toi_thieu: String(r.gia_tri_don_toi_thieu ?? 0),
-                    ngay_dat_trong_tuan: r.ngay_dat_trong_tuan ?? ''
+                    ngay_dat_trong_tuan: r.ngay_dat_trong_tuan ?? '',
+                    diem_danh_gia: r.diem_danh_gia != null ? String(r.diem_danh_gia) : ''
                   })}>Sửa</button>
               ) }
             ]}
@@ -148,6 +172,11 @@ export default function NhaCungCap() {
               <input className="form-control" placeholder="vd 2,4,6" value={form.ngay_dat_trong_tuan}
                 onChange={e => setForm({ ...form, ngay_dat_trong_tuan: e.target.value })} />
               <div className="form-text">Để trống = mọi ngày</div>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Đánh giá (0-5 sao)</label>
+              <input type="number" min="0" max="5" step="0.5" className="form-control" value={form.diem_danh_gia}
+                onChange={e => setForm({ ...form, diem_danh_gia: e.target.value })} />
             </div>
           </div>
         )}
