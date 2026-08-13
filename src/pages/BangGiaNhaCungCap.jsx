@@ -6,7 +6,7 @@ import { tien, so, ngay } from '../lib/dinhDang'
 
 const MOI = {
   vat_tu_id: '', nha_cung_cap_id: '', don_gia: '', don_vi_mua: '',
-  he_so_quy_doi: '1', so_luong_toi_thieu: '0', buoc_dat: '1',
+  he_so_quy_doi: '1', so_luong_toi_thieu: '0', buoc_dat: '1', vat_suat: '0',
   la_ncc_chinh: false, ap_dung_tu: new Date().toISOString().slice(0, 10)
 }
 
@@ -30,7 +30,7 @@ export default function BangGiaNhaCungCap() {
     try {
       const [g, vt, ncc] = await Promise.all([
         supabase.from('gia_nha_cung_cap')
-          .select('id, vat_tu_id, nha_cung_cap_id, don_gia, don_vi_mua, he_so_quy_doi, so_luong_toi_thieu, buoc_dat, la_ncc_chinh, ap_dung_tu, dang_ap_dung, vat_tu(ten_vat_tu, ma_vat_tu, loai_vat_tu, trang_thai, don_vi_tinh(ma_dvt)), nha_cung_cap(ten_ncc)')
+          .select('id, vat_tu_id, nha_cung_cap_id, don_gia, don_vi_mua, he_so_quy_doi, so_luong_toi_thieu, buoc_dat, vat_suat, don_gia_da_vat, la_ncc_chinh, ap_dung_tu, dang_ap_dung, vat_tu(ten_vat_tu, ma_vat_tu, loai_vat_tu, trang_thai, don_vi_tinh(ma_dvt)), nha_cung_cap(ten_ncc)')
           .order('ap_dung_tu', { ascending: false }),
         supabase.from('vat_tu').select('id, ma_vat_tu, ten_vat_tu, loai_vat_tu, trang_thai').order('ten_vat_tu'),
         supabase.from('nha_cung_cap').select('id, ma_ncc, ten_ncc').order('ten_ncc')
@@ -78,6 +78,7 @@ export default function BangGiaNhaCungCap() {
         he_so_quy_doi: Number(form.he_so_quy_doi || 1),
         so_luong_toi_thieu: Number(form.so_luong_toi_thieu || 0),
         buoc_dat: Number(form.buoc_dat || 1),
+        vat_suat: Number(form.vat_suat || 0),
         la_ncc_chinh: !!form.la_ncc_chinh,
         ap_dung_tu: form.ap_dung_tu,
         dang_ap_dung: form.dang_ap_dung ?? true
@@ -152,6 +153,9 @@ export default function BangGiaNhaCungCap() {
               { ten: 'Vật tư', render: r => r.vat_tu?.ten_vat_tu },
               { ten: 'NCC', render: r => r.nha_cung_cap?.ten_ncc },
               { ten: 'Đơn giá', lop: 'text-end', render: r => tien(r.don_gia) },
+              { ten: 'Đơn giá đã VAT', lop: 'text-end', render: r => r.vat_suat > 0
+                  ? <span title="Chỉ để so sánh, không tự áp vào phiếu nhập">{tien(r.don_gia_da_vat)} <small className="text-secondary">({r.vat_suat}%)</small></span>
+                  : '—' },
               { ten: 'Đơn vị mua', render: r => r.don_vi_mua || r.vat_tu?.don_vi_tinh?.ma_dvt || '—' },
               { ten: 'Hệ số quy đổi', lop: 'text-end', render: r => so(r.he_so_quy_doi) },
               { ten: 'MOQ dòng', lop: 'text-end', render: r => so(r.so_luong_toi_thieu) },
@@ -166,6 +170,7 @@ export default function BangGiaNhaCungCap() {
                     he_so_quy_doi: String(r.he_so_quy_doi),
                     so_luong_toi_thieu: String(r.so_luong_toi_thieu),
                     buoc_dat: String(r.buoc_dat),
+                    vat_suat: String(r.vat_suat ?? 0),
                     don_vi_mua: r.don_vi_mua || ''
                   })}>Sửa</button>
                   {r.dang_ap_dung && (
@@ -205,6 +210,12 @@ export default function BangGiaNhaCungCap() {
               <label className="form-label">Đơn giá (₫) *</label>
               <input type="number" min="0" className="form-control" value={form.don_gia}
                 onChange={e => setForm({ ...form, don_gia: e.target.value })} />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">VAT (%)</label>
+              <input type="number" min="0" max="100" step="0.1" className="form-control" value={form.vat_suat}
+                onChange={e => setForm({ ...form, vat_suat: e.target.value })} />
+              <div className="form-text">Chỉ để so sánh giá NCC, không tự áp vào phiếu nhập.</div>
             </div>
             <div className="col-md-4">
               <label className="form-label">Đơn vị mua</label>

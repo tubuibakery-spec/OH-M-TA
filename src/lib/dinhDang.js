@@ -26,6 +26,14 @@ export function homNay() {
   return new Date().toISOString().slice(0, 10)
 }
 
+export function donGiaSuDung(giaMua, thuHoiPct, vanHanhPct) {
+  if (!giaMua) return 0
+  const th = (thuHoiPct ?? 100) / 100
+  const vh = (vanHanhPct ?? 100) / 100
+  if (th <= 0 || vh <= 0) return 0
+  return Math.round(giaMua / th / vh)
+}
+
 const NHAN_TRANG_THAI = {
   nhap: ['Nháp', 'secondary'],
   cho_duyet: ['Chờ duyệt', 'warning'],

@@ -5,7 +5,7 @@ import { Trang, Bang, DangTai, Loi, Modal } from '../components/Chung'
 import { tien } from '../lib/dinhDang'
 
 const MOI = {
-  ma_ncc: '', ten_ncc: '', nguoi_lien_he: '', so_dien_thoai: '', dia_chi: '', mst: '',
+  ma_ncc: '', ten_ncc: '', nguoi_lien_he: '', so_dien_thoai: '', email: '', dia_chi: '', mst: '',
   thoi_gian_giao_ngay: '1', gia_tri_don_toi_thieu: '0', ngay_dat_trong_tuan: '', diem_danh_gia: ''
 }
 
@@ -32,7 +32,7 @@ export default function NhaCungCap() {
     setDangTai(true); setLoi(null)
     const [ncc, ut] = await Promise.all([
       supabase.from('nha_cung_cap')
-        .select('id, ma_ncc, ten_ncc, nguoi_lien_he, so_dien_thoai, dia_chi, mst, trang_thai, thoi_gian_giao_ngay, gia_tri_don_toi_thieu, ngay_dat_trong_tuan, diem_danh_gia')
+        .select('id, ma_ncc, ten_ncc, nguoi_lien_he, so_dien_thoai, email, dia_chi, mst, trang_thai, thoi_gian_giao_ngay, gia_tri_don_toi_thieu, ngay_dat_trong_tuan, diem_danh_gia')
         .order('ten_ncc'),
       supabase.from('diem_uy_tin_ncc').select('*')
     ])
@@ -52,6 +52,7 @@ export default function NhaCungCap() {
         ten_ncc: form.ten_ncc.trim(),
         nguoi_lien_he: form.nguoi_lien_he || null,
         so_dien_thoai: form.so_dien_thoai || null,
+        email: form.email || null,
         dia_chi: form.dia_chi || null,
         mst: form.mst || null,
         thoi_gian_giao_ngay: Number(form.thoi_gian_giao_ngay || 1),
@@ -92,6 +93,7 @@ export default function NhaCungCap() {
                 <span className="small">
                   {r.nguoi_lien_he || '—'}
                   {r.so_dien_thoai && <div className="text-secondary">{r.so_dien_thoai}</div>}
+                  {r.email && <div className="text-secondary">{r.email}</div>}
                 </span>
               ) },
               { ten: 'Lead time', lop: 'text-end', render: r => `${r.thoi_gian_giao_ngay} ngày` },
@@ -146,6 +148,11 @@ export default function NhaCungCap() {
               <label className="form-label">Điện thoại</label>
               <input className="form-control" value={form.so_dien_thoai || ''}
                 onChange={e => setForm({ ...form, so_dien_thoai: e.target.value })} />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Email</label>
+              <input type="email" className="form-control" value={form.email || ''}
+                onChange={e => setForm({ ...form, email: e.target.value })} />
             </div>
             <div className="col-md-8">
               <label className="form-label">Địa chỉ</label>

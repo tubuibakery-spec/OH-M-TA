@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { useApp } from '../context/AppContext'
 import { Trang, Bang, DangTai, Loi, TrangThai, Modal } from '../components/Chung'
-import { so } from '../lib/dinhDang'
+import { so, tien, donGiaSuDung } from '../lib/dinhDang'
 
 const TAO_MOI = { vat_tu_dau_ra_id: '', ten_cong_thuc: '', so_luong_dau_ra: '1', ty_le_hao_hut_phan_tram: '0' }
 
@@ -10,6 +10,7 @@ export default function CongThucSanXuat() {
   const { coQuyenMoiNoi, coQuyen } = useApp()
   const [congThucs, setCongThucs] = useState([])
   const [vatTus, setVatTus] = useState([])
+  const [giaNccChinh, setGiaNccChinh] = useState({})
   const [dangTai, setDangTai] = useState(true)
   const [loi, setLoi] = useState(null)
   const [hienLichSu, setHienLichSu] = useState(false)
@@ -21,7 +22,7 @@ export default function CongThucSanXuat() {
   const [xem, setXem] = useState(null)
   const [ctForm, setCtForm] = useState(null)
   const [chiTiet, setChiTiet] = useState([])
-  const [dongMoi, setDongMoi] = useState({ vat_tu_id: '', so_luong_dinh_muc: '' })
+  const [dongMoi, setDongMoi] = useState({ vat_tu_id: '', so_luong_dinh_muc: '', ty_le_hao_hut_dong_pct: '0' })
 
   const [phienBanMoiCho, setPhienBanMoiCho] = useState(null)
   const [formPhienBan, setFormPhienBan] = useState(null)
@@ -31,15 +32,19 @@ export default function CongThucSanXuat() {
   const nap = useCallback(async () => {
     setDangTai(true); setLoi(null)
     try {
-      const [ct, vt] = await Promise.all([
+      const [ct, vt, g] = await Promise.all([
         supabase.from('cong_thuc_san_xuat')
           .select('id, vat_tu_dau_ra_id, ten_cong_thuc, so_luong_dau_ra, ty_le_hao_hut_phan_tram, phien_ban, dang_ap_dung, vat_tu(ten_vat_tu, don_vi_tinh(ma_dvt))')
           .order('ten_cong_thuc'),
-        supabase.from('vat_tu').select('id, ma_vat_tu, ten_vat_tu, loai_vat_tu, don_vi_tinh(ma_dvt)').order('ten_vat_tu')
+        supabase.from('vat_tu').select('id, ma_vat_tu, ten_vat_tu, loai_vat_tu, don_vi_tinh(ma_dvt)').order('ten_vat_tu'),
+        supabase.from('gia_nha_cung_cap').select('vat_tu_id, don_gia')
+          .eq('la_ncc_chinh', true).eq('dang_ap_dung', true)
       ])
       if (ct.error) throw ct.error
       if (vt.error) throw vt.error
+      if (g.error) throw g.error
       setCongThucs(ct.data || []); setVatTus(vt.data || [])
+      setGiaNccChinh(Object.fromEntries((g.data || []).map(r => [r.vat_tu_id, r.don_gia])))
     } catch (e) { setLoi(e.message) } finally { setDangTai(false) }
   }, [])
 
@@ -58,11 +63,17 @@ export default function CongThucSanXuat() {
   async function napChiTiet(congThucId) {
     const { data, error } = await supabase
       .from('chi_tiet_cong_thuc')
-      .select('id, vat_tu_id, so_luong_dinh_muc, vat_tu(ten_vat_tu, don_vi_tinh(ma_dvt))')
+      .select('id, vat_tu_id, so_luong_dinh_muc, ty_le_hao_hut_dong_pct, vat_tu(ten_vat_tu, don_vi_tinh(ma_dvt), ty_le_thu_hoi_so_che_pct, ty_le_su_dung_van_hanh_pct)')
       .eq('cong_thuc_id', congThucId)
       .order('id')
     if (error) { setLoi(error.message); return [] }
     return data || []
+  }
+
+  function giaTriDong(r) {
+    const donGia = donGiaSuDung(giaNccChinh[r.vat_tu_id], r.vat_tu?.ty_le_thu_hoi_so_che_pct, r.vat_tu?.ty_le_su_dung_van_hanh_pct)
+    if (!donGia) return 0
+    return Math.round(donGia * Number(r.so_luong_dinh_muc) * (1 + Number(r.ty_le_hao_hut_dong_pct || 0) / 100))
   }
 
   async function taoCongThuc() {
@@ -93,7 +104,7 @@ export default function CongThucSanXuat() {
       so_luong_dau_ra: String(c.so_luong_dau_ra),
       ty_le_hao_hut_phan_tram: String(c.ty_le_hao_hut_phan_tram ?? 0)
     })
-    setDongMoi({ vat_tu_id: '', so_luong_dinh_muc: '' })
+    setDongMoi({ vat_tu_id: '', so_luong_dinh_muc: '', ty_le_hao_hut_dong_pct: '0' })
     setChiTiet(await napChiTiet(c.id))
   }, [])
 
@@ -120,10 +131,11 @@ export default function CongThucSanXuat() {
     const { error } = await supabase.from('chi_tiet_cong_thuc').insert({
       cong_thuc_id: xem.id,
       vat_tu_id: dongMoi.vat_tu_id,
-      so_luong_dinh_muc: Number(dongMoi.so_luong_dinh_muc)
+      so_luong_dinh_muc: Number(dongMoi.so_luong_dinh_muc),
+      ty_le_hao_hut_dong_pct: Number(dongMoi.ty_le_hao_hut_dong_pct || 0)
     })
     if (error) { setLoi(error.message); return }
-    setDongMoi({ vat_tu_id: '', so_luong_dinh_muc: '' })
+    setDongMoi({ vat_tu_id: '', so_luong_dinh_muc: '', ty_le_hao_hut_dong_pct: '0' })
     setChiTiet(await napChiTiet(xem.id))
   }
 
@@ -132,6 +144,14 @@ export default function CongThucSanXuat() {
     const { error } = await supabase.from('chi_tiet_cong_thuc').delete().eq('id', id)
     if (error) { setLoi(error.message); return }
     setChiTiet(await napChiTiet(xem.id))
+  }
+
+  async function suaHaoHutDong(id, gt) {
+    setChiTiet(ct => ct.map(r => r.id === id ? { ...r, ty_le_hao_hut_dong_pct: gt } : r))
+    const soMoi = Number(gt)
+    if (!(soMoi >= 0)) return
+    const { error } = await supabase.from('chi_tiet_cong_thuc').update({ ty_le_hao_hut_dong_pct: soMoi }).eq('id', id)
+    if (error) setLoi(error.message)
   }
 
   const vatTuNguyenLieuChon = useMemo(() => {
@@ -294,16 +314,28 @@ export default function CongThucSanXuat() {
 
         <table className="table table-sm align-middle">
           <thead className="table-light">
-            <tr><th>Nguyên liệu</th><th className="text-end">Định mức</th><th /></tr>
+            <tr>
+              <th>Nguyên liệu</th><th className="text-end">Định mức</th>
+              <th className="text-end" style={{ width: 130 }}>Hao hụt dòng (%)</th>
+              <th className="text-end">Giá trị</th><th />
+            </tr>
           </thead>
           <tbody>
             {chiTiet.length === 0 && (
-              <tr><td colSpan={3} className="text-center text-secondary py-4">Chưa có nguyên liệu nào</td></tr>
+              <tr><td colSpan={5} className="text-center text-secondary py-4">Chưa có nguyên liệu nào</td></tr>
             )}
             {chiTiet.map(r => (
               <tr key={r.id}>
                 <td>{r.vat_tu?.ten_vat_tu} <span className="text-secondary small">({r.vat_tu?.don_vi_tinh?.ma_dvt})</span></td>
                 <td className="text-end">{so(r.so_luong_dinh_muc)}</td>
+                <td className="text-end">
+                  {duocSua ? (
+                    <input type="number" min="0" step="0.1" className="form-control form-control-sm text-end"
+                      value={r.ty_le_hao_hut_dong_pct ?? 0}
+                      onChange={e => suaHaoHutDong(r.id, e.target.value)} />
+                  ) : so(r.ty_le_hao_hut_dong_pct)}
+                </td>
+                <td className="text-end">{giaTriDong(r) ? tien(giaTriDong(r)) : '—'}</td>
                 <td className="text-end">
                   {duocSua && (
                     <button className="btn btn-sm btn-outline-danger" onClick={() => xoaDongNguyenLieu(r.id)}>Xóa</button>
@@ -312,6 +344,15 @@ export default function CongThucSanXuat() {
               </tr>
             ))}
           </tbody>
+          {chiTiet.length > 0 && (
+            <tfoot className="table-light">
+              <tr>
+                <td colSpan={3} className="text-end fw-semibold">Tổng giá trị/mẻ</td>
+                <td className="text-end fw-semibold">{tien(chiTiet.reduce((s, r) => s + giaTriDong(r), 0))}</td>
+                <td />
+              </tr>
+            </tfoot>
+          )}
         </table>
 
         {duocSua && (
@@ -324,13 +365,19 @@ export default function CongThucSanXuat() {
                 {vatTuNguyenLieuChon.map(v => <option key={v.id} value={v.id}>{v.ten_vat_tu}</option>)}
               </select>
             </div>
-            <div className="col-md-3">
+            <div className="col-md-2">
               <label className="form-label small">Định mức</label>
               <input type="number" min="0.001" step="0.001" className="form-control form-control-sm"
                 value={dongMoi.so_luong_dinh_muc}
                 onChange={e => setDongMoi({ ...dongMoi, so_luong_dinh_muc: e.target.value })} />
             </div>
-            <div className="col-md-3">
+            <div className="col-md-2">
+              <label className="form-label small">Hao hụt (%)</label>
+              <input type="number" min="0" step="0.1" className="form-control form-control-sm"
+                value={dongMoi.ty_le_hao_hut_dong_pct}
+                onChange={e => setDongMoi({ ...dongMoi, ty_le_hao_hut_dong_pct: e.target.value })} />
+            </div>
+            <div className="col-md-2">
               <button className="btn btn-sm btn-outline-primary w-100" onClick={themDongNguyenLieu}>+ Thêm dòng</button>
             </div>
           </div>

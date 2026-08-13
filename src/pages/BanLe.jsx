@@ -53,7 +53,7 @@ export default function BanLe() {
           .eq('chi_nhanh_id', chiNhanhId)
           .order('ngay_ban', { ascending: false }).limit(100),
         supabase.from('vat_tu')
-          .select('id, ten_vat_tu, don_vi_tinh(ma_dvt)')
+          .select('id, ten_vat_tu, don_vi_tinh(ma_dvt), gia_ban_da_vat')
           .eq('duoc_ban', true).eq('trang_thai', 'hoat_dong').order('ten_vat_tu'),
         supabase.from('chuong_trinh_khuyen_mai')
           .select('id, ten_ctkm, loai_giam, gia_tri_giam, gia_tri_don_toi_thieu, ap_dung_kenh')
@@ -80,7 +80,15 @@ export default function BanLe() {
   useEffect(() => { napDs() }, [napDs])
 
   function suaDong(i, truong, gt) {
-    setGioHang(g => g.map((r, j) => j === i ? { ...r, [truong]: gt } : r))
+    setGioHang(g => g.map((r, j) => {
+      if (j !== i) return r
+      const moi = { ...r, [truong]: gt }
+      if (truong === 'vat_tu_id' && !(Number(r.don_gia) > 0)) {
+        const vt = vatTus.find(v => v.id === gt)
+        if (vt?.gia_ban_da_vat) moi.don_gia = String(vt.gia_ban_da_vat)
+      }
+      return moi
+    }))
   }
 
   const tongTamTinh = gioHang.reduce((s, r) =>
