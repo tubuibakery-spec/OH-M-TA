@@ -4,11 +4,14 @@ import { useApp } from '../context/AppContext'
 import { Trang, Bang, DangTai, Loi, TrangThai, Modal } from '../components/Chung'
 import { tien, so, ngay, ngayGio } from '../lib/dinhDang'
 
+const DONG_TAO_TRONG = { vat_tu_id: '', so_luong_mua: '', he_so_quy_doi: '1', don_gia: '' }
+
 export default function DonDatHang() {
   const { chiNhanhId, coQuyen, nguoiDung } = useApp()
   const [don, setDon] = useState([])
   const [dangTai, setDangTai] = useState(true)
   const [loi, setLoi] = useState(null)
+  const [ok, setOk] = useState(null)
   const [xem, setXem] = useState(null)
   const [ct, setCt] = useState([])
   const [hanMucDuyet, setHanMucDuyet] = useState(null)
@@ -18,23 +21,93 @@ export default function DonDatHang() {
   const [dangGuiGhiChu, setDangGuiGhiChu] = useState(false)
   const [lichSu, setLichSu] = useState([])
 
+  const [nccs, setNccs] = useState([])
+  const [vatTus, setVatTus] = useState([])
+  const [moTao, setMoTao] = useState(false)
+  const [nccTaoId, setNccTaoId] = useState('')
+  const [ngayGiaoTao, setNgayGiaoTao] = useState('')
+  const [giaTheoNcc, setGiaTheoNcc] = useState({})
+  const [dsDongTao, setDsDongTao] = useState([{ ...DONG_TAO_TRONG }])
+  const [dangTao, setDangTao] = useState(false)
+
   const napDs = useCallback(async () => {
     if (!chiNhanhId) { setDangTai(false); return }
     setDangTai(true); setLoi(null)
-    const [d, ch] = await Promise.all([
+    const [d, ch, ncc, vt] = await Promise.all([
       supabase.from('don_dat_hang_ncc')
         .select('id, so_don, ngay_dat, ngay_giao_du_kien, tong_tien, trang_thai, ghi_chu, nguoi_duyet_id, ngay_duyet, nha_cung_cap(ten_ncc)')
         .eq('chi_nhanh_id', chiNhanhId)
         .order('ngay_dat', { ascending: false }).limit(100),
-      supabase.from('cau_hinh_cong_ty').select('han_muc_duyet_don_mua').eq('id', 1).maybeSingle()
+      supabase.from('cau_hinh_cong_ty').select('han_muc_duyet_don_mua').eq('id', 1).maybeSingle(),
+      supabase.from('nha_cung_cap').select('id, ten_ncc').order('ten_ncc'),
+      supabase.from('vat_tu').select('id, ten_vat_tu, don_vi_tinh(ma_dvt)').eq('trang_thai', 'hoat_dong').order('ten_vat_tu')
     ])
     if (d.error) setLoi(d.error.message)
     setDon(d.data || [])
     setHanMucDuyet(ch.data?.han_muc_duyet_don_mua ?? null)
+    setNccs(ncc.data || []); setVatTus(vt.data || [])
     setDangTai(false)
   }, [chiNhanhId])
 
   useEffect(() => { napDs() }, [napDs])
+
+  function moModalTao() {
+    setNccTaoId(''); setNgayGiaoTao(''); setGiaTheoNcc({})
+    setDsDongTao([{ ...DONG_TAO_TRONG }])
+    setMoTao(true)
+  }
+
+  async function chonNccTao(id) {
+    setNccTaoId(id)
+    setDsDongTao([{ ...DONG_TAO_TRONG }])
+    if (!id) { setGiaTheoNcc({}); return }
+    const { data, error } = await supabase.from('gia_nha_cung_cap')
+      .select('vat_tu_id, don_gia, he_so_quy_doi, don_vi_mua')
+      .eq('nha_cung_cap_id', id).eq('dang_ap_dung', true)
+    if (error) { setLoi(error.message); return }
+    setGiaTheoNcc(Object.fromEntries((data || []).map(r => [r.vat_tu_id, r])))
+  }
+
+  function suaDongTao(i, truong, gt) {
+    setDsDongTao(ds => ds.map((d, idx) => {
+      if (idx !== i) return d
+      const moi = { ...d, [truong]: gt }
+      if (truong === 'vat_tu_id') {
+        const g = giaTheoNcc[gt]
+        if (g) { moi.he_so_quy_doi = String(g.he_so_quy_doi ?? 1); moi.don_gia = String(g.don_gia ?? '') }
+      }
+      return moi
+    }))
+  }
+  function themDongTao() { setDsDongTao(ds => [...ds, { ...DONG_TAO_TRONG }]) }
+  function xoaDongTao(i) { setDsDongTao(ds => ds.filter((_, idx) => idx !== i)) }
+
+  const tongTienTao = dsDongTao.reduce((s, d) =>
+    s + (Number(d.so_luong_mua) || 0) * (Number(d.don_gia) || 0), 0)
+
+  async function taoDonThuCong() {
+    if (!nccTaoId) { setLoi('Chọn nhà cung cấp.'); return }
+    const hopLe = dsDongTao.filter(d => d.vat_tu_id && Number(d.so_luong_mua) > 0)
+    if (!hopLe.length) { setLoi('Cần ít nhất 1 dòng vật tư hợp lệ.'); return }
+    setDangTao(true); setLoi(null); setOk(null)
+    try {
+      const { data: moi, error: e1 } = await supabase.from('don_dat_hang_ncc')
+        .insert({ nha_cung_cap_id: nccTaoId, chi_nhanh_id: chiNhanhId, ngay_giao_du_kien: ngayGiaoTao || null })
+        .select('id, so_don').single()
+      if (e1) throw e1
+      const { error: e2 } = await supabase.from('chi_tiet_don_dat_hang_ncc').insert(
+        hopLe.map(d => ({
+          don_dat_hang_id: moi.id, vat_tu_id: d.vat_tu_id,
+          so_luong_mua: Number(d.so_luong_mua), he_so_quy_doi: Number(d.he_so_quy_doi) || 1,
+          don_gia: Number(d.don_gia || 0)
+        }))
+      )
+      if (e2) throw e2
+      setOk(`Đã tạo đơn ${moi.so_don}.`)
+      setMoTao(false)
+      await napDs()
+    } catch (e) { setLoi(e.message) } finally { setDangTao(false) }
+  }
 
   async function moXem(d) {
     setXem(d); setCt([]); setGhiChuList([]); setLichSu([]); setNoiDungMoi(''); setTabXem('chi_tiet')
@@ -112,11 +185,20 @@ export default function DonDatHang() {
   }
 
   const duocSua = coQuyen('mua_hang', 'sua')
+  const duocTao = coQuyen('mua_hang', 'tao')
   const duocDuyet = coQuyen('mua_hang', 'duyet')
 
   return (
-    <Trang tieuDe="Đơn đặt nhà cung cấp" mota="Đơn ở trạng thái Đã gửi / Đã xác nhận mới được tính là “hàng đang về”">
+    <Trang
+      tieuDe="Đơn đặt nhà cung cấp"
+      mota="Đơn ở trạng thái Đã gửi / Đã xác nhận mới được tính là “hàng đang về”"
+      hanhDong={duocTao && (
+        <button className="btn btn-primary" onClick={moModalTao}>+ Tạo đơn hàng</button>
+      )}
+    >
       <Loi loi={loi} onDong={() => setLoi(null)} />
+      {ok && <div className="alert alert-success alert-dismissible" role="alert">{ok}
+        <button type="button" className="btn-close" onClick={() => setOk(null)} /></div>}
 
       {dangTai ? <DangTai /> : (
         <div className="card border-0 shadow-sm">
@@ -234,6 +316,82 @@ export default function DonDatHang() {
             ]}
           />
         )}
+      </Modal>
+
+      <Modal mo={moTao} rong tieuDe="Tạo đơn hàng" onDong={() => setMoTao(false)}
+        onLuu={taoDonThuCong} dangLuu={dangTao} nhanLuu="Tạo đơn">
+        <div className="row g-3 mb-3">
+          <div className="col-md-6">
+            <label className="form-label">Nhà cung cấp *</label>
+            <select className="form-select" value={nccTaoId} onChange={e => chonNccTao(e.target.value)}>
+              <option value="">— Chọn NCC —</option>
+              {nccs.map(n => <option key={n.id} value={n.id}>{n.ten_ncc}</option>)}
+            </select>
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Giao dự kiến</label>
+            <input type="date" className="form-control" value={ngayGiaoTao}
+              onChange={e => setNgayGiaoTao(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="table-responsive mb-2">
+          <table className="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>Vật tư</th><th style={{ width: 130 }}>SL (ĐV mua)</th>
+                <th style={{ width: 110 }}>Quy đổi</th><th style={{ width: 150 }}>Đơn giá</th>
+                <th className="text-end" style={{ width: 120 }}>Thành tiền</th><th style={{ width: 40 }} />
+              </tr>
+            </thead>
+            <tbody>
+              {dsDongTao.map((d, i) => (
+                <tr key={i}>
+                  <td>
+                    <select className="form-select form-select-sm" value={d.vat_tu_id}
+                      onChange={e => suaDongTao(i, 'vat_tu_id', e.target.value)}>
+                      <option value="">— Chọn vật tư —</option>
+                      {vatTus.map(v => (
+                        <option key={v.id} value={v.id}>
+                          {v.ten_vat_tu}{giaTheoNcc[v.id] ? ' ★ đã có giá' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input type="number" min="0" step="0.001" className="form-control form-control-sm"
+                      value={d.so_luong_mua} onChange={e => suaDongTao(i, 'so_luong_mua', e.target.value)} />
+                  </td>
+                  <td>
+                    <input type="number" min="0.001" step="0.001" className="form-control form-control-sm"
+                      value={d.he_so_quy_doi} onChange={e => suaDongTao(i, 'he_so_quy_doi', e.target.value)} />
+                  </td>
+                  <td>
+                    <input type="number" min="0" className="form-control form-control-sm"
+                      value={d.don_gia} onChange={e => suaDongTao(i, 'don_gia', e.target.value)} />
+                  </td>
+                  <td className="text-end">{tien((Number(d.so_luong_mua) || 0) * (Number(d.don_gia) || 0))}</td>
+                  <td>
+                    {dsDongTao.length > 1 && (
+                      <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => xoaDongTao(i)}>×</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="table-light">
+              <tr>
+                <td colSpan={4} className="text-end fw-semibold">Tổng tiền</td>
+                <td className="text-end fw-bold">{tien(tongTienTao)}</td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <button type="button" className="btn btn-sm btn-outline-secondary" onClick={themDongTao}>+ Thêm dòng</button>
+        <div className="form-text mt-2">
+          Chọn NCC trước để tự điền đơn giá/hệ số quy đổi theo "Bảng giá NCC" (nếu có) — vẫn sửa tay được. Đơn tạo ở trạng thái Nháp, vào danh sách để Gửi NCC.
+        </div>
       </Modal>
     </Trang>
   )
