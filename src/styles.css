@@ -115,7 +115,7 @@ code {
 }
 
 @media print {
-  .sidebar, .topbar, footer, .no-print {
+  .sidebar, .topbar, footer, .no-print, .modal-footer, .modal .btn-close {
     display: none !important;
   }
   .ohmeta-content {

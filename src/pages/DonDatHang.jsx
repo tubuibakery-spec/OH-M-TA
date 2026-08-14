@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useApp } from '../context/AppContext'
 import { Trang, Bang, DangTai, Loi, TrangThai, Modal } from '../components/Chung'
-import { tien, so, ngay, ngayGio } from '../lib/dinhDang'
+import { tien, so, ngay, ngayGio, homNay } from '../lib/dinhDang'
 
 const DONG_TAO_TRONG = { vat_tu_id: '', so_luong_mua: '', he_so_quy_doi: '1', don_gia: '' }
 
@@ -24,6 +24,8 @@ export default function DonDatHang() {
   const [nccs, setNccs] = useState([])
   const [vatTus, setVatTus] = useState([])
   const [moTao, setMoTao] = useState(false)
+  const [dangSuaId, setDangSuaId] = useState(null)
+  const [soDonDangSua, setSoDonDangSua] = useState('')
   const [nccTaoId, setNccTaoId] = useState('')
   const [ngayGiaoTao, setNgayGiaoTao] = useState('')
   const [giaTheoNcc, setGiaTheoNcc] = useState({})
@@ -35,7 +37,7 @@ export default function DonDatHang() {
     setDangTai(true); setLoi(null)
     const [d, ch, ncc, vt] = await Promise.all([
       supabase.from('don_dat_hang_ncc')
-        .select('id, so_don, ngay_dat, ngay_giao_du_kien, tong_tien, trang_thai, ghi_chu, nguoi_duyet_id, ngay_duyet, nha_cung_cap(ten_ncc)')
+        .select('id, so_don, ngay_dat, ngay_giao_du_kien, tong_tien, trang_thai, ghi_chu, nguoi_duyet_id, ngay_duyet, nha_cung_cap_id, nha_cung_cap(ten_ncc), chi_nhanh(ten_chi_nhanh)')
         .eq('chi_nhanh_id', chiNhanhId)
         .order('ngay_dat', { ascending: false }).limit(100),
       supabase.from('cau_hinh_cong_ty').select('han_muc_duyet_don_mua').eq('id', 1).maybeSingle(),
@@ -52,20 +54,51 @@ export default function DonDatHang() {
   useEffect(() => { napDs() }, [napDs])
 
   function moModalTao() {
-    setNccTaoId(''); setNgayGiaoTao(''); setGiaTheoNcc({})
+    setDangSuaId(null); setSoDonDangSua('')
+    setNccTaoId(''); setNgayGiaoTao(homNay()); setGiaTheoNcc({})
     setDsDongTao([{ ...DONG_TAO_TRONG }])
     setMoTao(true)
   }
 
+  async function moModalSua(d) {
+    setDangSuaId(d.id); setSoDonDangSua(d.so_don)
+    setNccTaoId(d.nha_cung_cap_id); setNgayGiaoTao(d.ngay_giao_du_kien || homNay())
+    setDsDongTao([])
+    setMoTao(true); setLoi(null)
+    const [gRes, cRes] = await Promise.all([
+      supabase.from('gia_nha_cung_cap')
+        .select('vat_tu_id, don_gia, he_so_quy_doi, don_vi_mua, vat_suat')
+        .eq('nha_cung_cap_id', d.nha_cung_cap_id).eq('dang_ap_dung', true),
+      supabase.from('chi_tiet_don_dat_hang_ncc')
+        .select('vat_tu_id, so_luong_mua, he_so_quy_doi, don_gia')
+        .eq('don_dat_hang_id', d.id)
+    ])
+    if (gRes.error) { setLoi(gRes.error.message); return }
+    if (cRes.error) { setLoi(cRes.error.message); return }
+    setGiaTheoNcc(Object.fromEntries((gRes.data || []).map(r => [r.vat_tu_id, r])))
+    setDsDongTao((cRes.data || []).map(r => ({
+      vat_tu_id: r.vat_tu_id, so_luong_mua: String(r.so_luong_mua),
+      he_so_quy_doi: String(r.he_so_quy_doi), don_gia: String(r.don_gia)
+    })))
+  }
+
   async function chonNccTao(id) {
     setNccTaoId(id)
-    setDsDongTao([{ ...DONG_TAO_TRONG }])
-    if (!id) { setGiaTheoNcc({}); return }
+    if (!id) { setGiaTheoNcc({}); setDsDongTao([{ ...DONG_TAO_TRONG }]); return }
     const { data, error } = await supabase.from('gia_nha_cung_cap')
-      .select('vat_tu_id, don_gia, he_so_quy_doi, don_vi_mua')
+      .select('vat_tu_id, don_gia, he_so_quy_doi, don_vi_mua, vat_suat')
       .eq('nha_cung_cap_id', id).eq('dang_ap_dung', true)
     if (error) { setLoi(error.message); return }
     setGiaTheoNcc(Object.fromEntries((data || []).map(r => [r.vat_tu_id, r])))
+    // Hiện luôn danh mục sản phẩm của NCC — mỗi mặt hàng 1 dòng có sẵn đơn
+    // giá/quy đổi, chỉ cần gõ số lượng muốn đặt (dòng để trống SL sẽ tự bỏ
+    // qua khi lưu). Vẫn dùng "+ Thêm dòng" nếu cần đặt vật tư ngoài danh mục.
+    setDsDongTao((data || []).length
+      ? data.map(g => ({
+          vat_tu_id: g.vat_tu_id, so_luong_mua: '',
+          he_so_quy_doi: String(g.he_so_quy_doi ?? 1), don_gia: String(g.don_gia ?? '')
+        }))
+      : [{ ...DONG_TAO_TRONG }])
   }
 
   function suaDongTao(i, truong, gt) {
@@ -96,24 +129,65 @@ export default function DonDatHang() {
     if (!nccTaoId) { setLoi('Chọn nhà cung cấp.'); return }
     const hopLe = dsDongTao.filter(d => d.vat_tu_id && Number(d.so_luong_mua) > 0)
     if (!hopLe.length) { setLoi('Cần ít nhất 1 dòng vật tư hợp lệ.'); return }
+    const idsHopLe = hopLe.map(d => d.vat_tu_id)
+    if (new Set(idsHopLe).size !== idsHopLe.length) {
+      setLoi('Có vật tư bị chọn trùng — mỗi vật tư chỉ được xuất hiện 1 dòng trong đơn.'); return
+    }
     setDangTao(true); setLoi(null); setOk(null)
     try {
-      const { data: moi, error: e1 } = await supabase.from('don_dat_hang_ncc')
-        .insert({ nha_cung_cap_id: nccTaoId, chi_nhanh_id: chiNhanhId, ngay_giao_du_kien: ngayGiaoTao || null })
-        .select('id, so_don').single()
-      if (e1) throw e1
+      let donId = dangSuaId
+      if (dangSuaId) {
+        const { error: eU } = await supabase.from('don_dat_hang_ncc')
+          .update({ nha_cung_cap_id: nccTaoId, ngay_giao_du_kien: ngayGiaoTao || null })
+          .eq('id', dangSuaId)
+        if (eU) throw eU
+        const { error: eD } = await supabase.from('chi_tiet_don_dat_hang_ncc')
+          .delete().eq('don_dat_hang_id', dangSuaId)
+        if (eD) throw eD
+      } else {
+        const { data: moi, error: e1 } = await supabase.from('don_dat_hang_ncc')
+          .insert({ nha_cung_cap_id: nccTaoId, chi_nhanh_id: chiNhanhId, ngay_giao_du_kien: ngayGiaoTao || null })
+          .select('id, so_don').single()
+        if (e1) throw e1
+        donId = moi.id
+      }
       const { error: e2 } = await supabase.from('chi_tiet_don_dat_hang_ncc').insert(
         hopLe.map(d => ({
-          don_dat_hang_id: moi.id, vat_tu_id: d.vat_tu_id,
+          don_dat_hang_id: donId, vat_tu_id: d.vat_tu_id,
           so_luong_mua: Number(d.so_luong_mua), he_so_quy_doi: Number(d.he_so_quy_doi) || 1,
           don_gia: Number(d.don_gia || 0)
         }))
       )
       if (e2) throw e2
-      setOk(`Đã tạo đơn ${moi.so_don}.`)
+      setOk(dangSuaId ? `Đã lưu thay đổi đơn ${soDonDangSua}.` : 'Đã tạo đơn hàng.')
       setMoTao(false)
       await napDs()
     } catch (e) { setLoi(e.message) } finally { setDangTao(false) }
+  }
+
+  async function nhanBanDon(d) {
+    if (!confirm(`Nhân bản đơn ${d.so_don} thành 1 đơn Nháp mới (giữ nguyên NCC + các dòng vật tư)?`)) return
+    setLoi(null); setOk(null)
+    try {
+      const { data: ctData, error: e0 } = await supabase.from('chi_tiet_don_dat_hang_ncc')
+        .select('vat_tu_id, so_luong_mua, he_so_quy_doi, don_gia')
+        .eq('don_dat_hang_id', d.id)
+      if (e0) throw e0
+      if (!ctData?.length) throw new Error('Đơn gốc chưa có dòng nào để nhân bản.')
+      const { data: moi, error: e1 } = await supabase.from('don_dat_hang_ncc')
+        .insert({ nha_cung_cap_id: d.nha_cung_cap_id, chi_nhanh_id: chiNhanhId })
+        .select('id, so_don').single()
+      if (e1) throw e1
+      const { error: e2 } = await supabase.from('chi_tiet_don_dat_hang_ncc').insert(
+        ctData.map(r => ({
+          don_dat_hang_id: moi.id, vat_tu_id: r.vat_tu_id,
+          so_luong_mua: r.so_luong_mua, he_so_quy_doi: r.he_so_quy_doi, don_gia: r.don_gia
+        }))
+      )
+      if (e2) throw e2
+      setOk(`Đã nhân bản thành đơn ${moi.so_don} (Nháp).`)
+      await napDs()
+    } catch (e) { setLoi(e.message) }
   }
 
   async function moXem(d) {
@@ -219,6 +293,7 @@ export default function DonDatHang() {
                 </button>
               ) },
               { ten: 'Ngày đặt', render: r => ngayGio(r.ngay_dat) },
+              { ten: 'Chi nhánh', render: r => r.chi_nhanh?.ten_chi_nhanh || '—' },
               { ten: 'Nhà cung cấp', render: r => r.nha_cung_cap?.ten_ncc || '—' },
               { ten: 'Giao dự kiến', render: r => ngay(r.ngay_giao_du_kien) },
               { ten: 'Tổng tiền', lop: 'text-end', render: r => tien(r.tong_tien) },
@@ -227,7 +302,10 @@ export default function DonDatHang() {
                 const daKetThuc = ['hoan_thanh', 'da_huy', 'tu_choi'].includes(r.trang_thai)
                 const vuotHanMuc = hanMucDuyet && Number(r.tong_tien) > Number(hanMucDuyet)
                 return (
-                  <div className="d-flex gap-1 justify-content-end">
+                  <div className="d-flex gap-1 justify-content-end flex-wrap">
+                    {duocSua && r.trang_thai === 'nhap' && (
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => moModalSua(r)}>Sửa</button>
+                    )}
                     {duocSua && r.trang_thai === 'nhap' && (
                       <button className="btn btn-sm btn-primary" onClick={() => gui(r)}>
                         {vuotHanMuc && !duocDuyet ? 'Gửi duyệt' : 'Gửi NCC'}
@@ -242,6 +320,9 @@ export default function DonDatHang() {
                     {duocSua && r.trang_thai === 'da_gui' && (
                       <button className="btn btn-sm btn-outline-primary" onClick={() => doiTrangThai(r, 'da_xac_nhan')}>NCC xác nhận</button>
                     )}
+                    {duocTao && (
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => nhanBanDon(r)}>Nhân bản</button>
+                    )}
                     {duocSua && !daKetThuc && (
                       <button className="btn btn-sm btn-outline-danger" onClick={() => huyDon(r)}>Hủy</button>
                     )}
@@ -254,7 +335,23 @@ export default function DonDatHang() {
       )}
 
       <Modal mo={!!xem} rong tieuDe={`Đơn ${xem?.so_don || ''}`} onDong={() => setXem(null)}>
-        <ul className="nav nav-tabs mb-3">
+        <div className="row g-2 mb-3 small">
+          <div className="col-md-3"><span className="text-secondary">Chi nhánh: </span>{xem?.chi_nhanh?.ten_chi_nhanh || '—'}</div>
+          <div className="col-md-3"><span className="text-secondary">Nhà cung cấp: </span>{xem?.nha_cung_cap?.ten_ncc || '—'}</div>
+          <div className="col-md-3"><span className="text-secondary">Ngày đặt: </span>{ngayGio(xem?.ngay_dat)}</div>
+          <div className="col-md-3"><span className="text-secondary">Giao dự kiến: </span>{ngay(xem?.ngay_giao_du_kien)}</div>
+          <div className="col-md-3"><span className="text-secondary">Trạng thái: </span><TrangThai gt={xem?.trang_thai} /></div>
+          <div className="col-md-3"><span className="text-secondary">Tổng tiền: </span><strong>{tien(xem?.tong_tien)}</strong></div>
+          <div className="col-md-6 text-md-end no-print">
+            <button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => window.print()}>
+              🖨️ In / Xuất PDF
+            </button>
+            {duocTao && xem && (
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => nhanBanDon(xem)}>Nhân bản</button>
+            )}
+          </div>
+        </div>
+        <ul className="nav nav-tabs mb-3 no-print">
           {[['chi_tiet', 'Chi tiết'], ['trao_doi', `Trao đổi nội bộ (${ghiChuList.length})`], ['lich_su', 'Lịch sử']].map(([k, nhan]) => (
             <li className="nav-item" key={k}>
               <button type="button" className={`nav-link ${tabXem === k ? 'active' : ''}`} onClick={() => setTabXem(k)}>{nhan}</button>
@@ -325,8 +422,8 @@ export default function DonDatHang() {
         )}
       </Modal>
 
-      <Modal mo={moTao} rong tieuDe="Tạo đơn hàng" onDong={() => setMoTao(false)}
-        onLuu={taoDonThuCong} dangLuu={dangTao} nhanLuu="Tạo đơn">
+      <Modal mo={moTao} rong tieuDe={dangSuaId ? `Sửa đơn ${soDonDangSua}` : 'Tạo đơn hàng'} onDong={() => setMoTao(false)}
+        onLuu={taoDonThuCong} dangLuu={dangTao} nhanLuu={dangSuaId ? 'Lưu thay đổi' : 'Tạo đơn'}>
         <div className="row g-3 mb-3">
           <div className="col-md-6">
             <label className="form-label">Nhà cung cấp *</label>
@@ -349,12 +446,15 @@ export default function DonDatHang() {
                 <th style={{ minWidth: 220 }}>Vật tư</th><th style={{ width: 130 }}>SL (ĐV mua)</th>
                 <th style={{ width: 90 }}>ĐV mua</th>
                 <th style={{ width: 110 }}>Quy đổi</th><th style={{ width: 150 }}>Đơn giá</th>
+                <th style={{ width: 80 }}>VAT</th>
                 <th className="text-end" style={{ width: 120 }}>Thành tiền</th><th style={{ width: 40 }} />
               </tr>
             </thead>
             <tbody>
               {dsDongTao.map((d, i) => {
                 const khongThuocNcc = !!(d.vat_tu_id && nccTaoId && !giaTheoNcc[d.vat_tu_id])
+                const dsDaChonNoiKhac = new Set(dsDongTao.filter((_, j) => j !== i).map(r => r.vat_tu_id).filter(Boolean))
+                const vatSuat = giaTheoNcc[d.vat_tu_id]?.vat_suat
                 return (
                   <tr key={i}>
                     <td>
@@ -364,18 +464,18 @@ export default function DonDatHang() {
                         {nccTaoId ? (
                           <>
                             <optgroup label="Sản phẩm của NCC này">
-                              {vatTus.filter(v => giaTheoNcc[v.id]).map(v => (
+                              {vatTus.filter(v => giaTheoNcc[v.id] && !dsDaChonNoiKhac.has(v.id)).map(v => (
                                 <option key={v.id} value={v.id}>{v.ten_vat_tu}</option>
                               ))}
                             </optgroup>
                             <optgroup label="Vật tư khác (không thuộc NCC này)">
-                              {vatTus.filter(v => !giaTheoNcc[v.id]).map(v => (
+                              {vatTus.filter(v => !giaTheoNcc[v.id] && !dsDaChonNoiKhac.has(v.id)).map(v => (
                                 <option key={v.id} value={v.id}>{v.ten_vat_tu}</option>
                               ))}
                             </optgroup>
                           </>
                         ) : (
-                          vatTus.map(v => <option key={v.id} value={v.id}>{v.ten_vat_tu}</option>)
+                          vatTus.filter(v => !dsDaChonNoiKhac.has(v.id)).map(v => <option key={v.id} value={v.id}>{v.ten_vat_tu}</option>)
                         )}
                       </select>
                       {khongThuocNcc && (
@@ -400,6 +500,7 @@ export default function DonDatHang() {
                         value={d.don_gia} disabled={khongThuocNcc}
                         onChange={e => suaDongTao(i, 'don_gia', e.target.value)} />
                     </td>
+                    <td className="text-secondary small">{vatSuat != null ? `${vatSuat}%` : '—'}</td>
                     <td className="text-end">{tien((Number(d.so_luong_mua) || 0) * (Number(d.don_gia) || 0))}</td>
                     <td>
                       {dsDongTao.length > 1 && (
@@ -412,7 +513,7 @@ export default function DonDatHang() {
             </tbody>
             <tfoot className="table-light">
               <tr>
-                <td colSpan={5} className="text-end fw-semibold">Tổng tiền</td>
+                <td colSpan={6} className="text-end fw-semibold">Tổng tiền</td>
                 <td className="text-end fw-bold">{tien(tongTienTao)}</td>
                 <td />
               </tr>
@@ -421,7 +522,7 @@ export default function DonDatHang() {
         </div>
         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={themDongTao}>+ Thêm dòng</button>
         <div className="form-text mt-2">
-          Chọn NCC trước để dropdown vật tư hiện đúng danh mục NCC đó, tự điền đơn giá/hệ số quy đổi/đơn vị mua theo "Bảng giá NCC" — vẫn sửa tay được. Đơn tạo ở trạng thái Nháp, vào danh sách để Gửi NCC.
+          Chọn NCC để tự hiện danh mục sản phẩm của NCC đó (đã điền sẵn đơn giá/hệ số quy đổi/đơn vị mua/VAT theo "Bảng giá NCC") — chỉ cần nhập số lượng muốn đặt, dòng để trống SL sẽ tự bỏ qua. VAT chỉ để tham khảo, không tính vào Tổng tiền (khớp giá đã thoả thuận với NCC — thuế thực tế nhập ở bước Nhập hàng). Đơn tạo ở trạng thái Nháp, vào danh sách để Gửi NCC.
         </div>
       </Modal>
     </Trang>
