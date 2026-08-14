@@ -121,4 +121,31 @@ code {
   .ohmeta-content {
     margin-left: 0 !important;
   }
+
+  /* In modal: ẩn toàn bộ nội dung trang phía sau (danh sách/thẻ/nút) —
+     nếu không, bản in sẽ chồng lẫn cả trang dashboard lẫn modal. Đồng thời
+     bỏ giới hạn chiều cao/scroll của modal-dialog-scrollable — mặc định nó
+     dùng position:fixed + overflow-y:auto nên khi in chỉ ra đúng phần đang
+     cuộn trong khung nhìn, đơn hàng nhiều dòng sẽ bị cắt cụt. */
+  body:has(.modal.show) main > div > *:not(.modal) {
+    display: none !important;
+  }
+  body:has(.modal.show) .modal {
+    position: static !important;
+  }
+  .modal-backdrop {
+    display: none !important;
+  }
+  .modal-dialog {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  .modal-content {
+    border: none !important;
+  }
+  .modal-dialog-scrollable,
+  .modal-dialog-scrollable .modal-body {
+    overflow: visible !important;
+    max-height: none !important;
+  }
 }

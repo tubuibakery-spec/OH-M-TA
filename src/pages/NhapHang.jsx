@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext'
 import { Trang, Bang, DangTai, Loi, TrangThai, Modal } from '../components/Chung'
 import { tien, so, ngayGio, ngay } from '../lib/dinhDang'
 
-const DONG_TRONG = { vat_tu_id: '', so_luong: '', don_gia: '', han_su_dung: '' }
+const DONG_TRONG = { vat_tu_id: '', so_luong: '', don_gia: '', han_su_dung: '', so_luong_dat: null, so_luong_da_nhan: null }
 
 export default function NhapHang() {
   const { chiNhanhId, coQuyen } = useApp()
@@ -40,7 +40,7 @@ export default function NhapHang() {
         supabase.from('vat_tu').select('id, ma_vat_tu, ten_vat_tu, don_vi_tinh(ma_dvt)')
           .eq('trang_thai', 'hoat_dong').order('ten_vat_tu'),
         supabase.from('don_dat_hang_ncc')
-          .select('id, so_don, nha_cung_cap_id, nha_cung_cap(ten_ncc)')
+          .select('id, so_don, nha_cung_cap_id, ngay_dat, ngay_giao_du_kien, tong_tien, trang_thai, nha_cung_cap(ten_ncc)')
           .eq('chi_nhanh_id', chiNhanhId)
           .in('trang_thai', ['da_gui', 'da_xac_nhan', 'nhan_mot_phan'])
           .order('ngay_dat', { ascending: false })
@@ -76,12 +76,19 @@ export default function NhapHang() {
           vat_tu_id: r.vat_tu_id,
           so_luong: String(Number(r.so_luong_dat) - Number(r.so_luong_da_nhan)),
           don_gia: String(Math.round(Number(r.don_gia) / (Number(r.he_so_quy_doi) || 1))),
-          han_su_dung: ''
+          han_su_dung: '',
+          so_luong_dat: Number(r.so_luong_dat),
+          so_luong_da_nhan: Number(r.so_luong_da_nhan)
         }))
         .filter(r => Number(r.so_luong) > 0)
 
       setDongCt(conLai.length ? conLai : [{ ...DONG_TRONG }])
     } catch (e) { setLoi(e.message) }
+  }
+
+  function moNhanHang(donDatHang) {
+    setMoTao(true)
+    chonDonDatHang(donDatHang.id)
   }
 
   async function luuPhieu() {
@@ -158,6 +165,32 @@ export default function NhapHang() {
       )}
     >
       <Loi loi={loi} onDong={() => setLoi(null)} />
+
+      {!dangTai && donDatHangs.length > 0 && (
+        <div className="card border-0 shadow-sm mb-4">
+          <div className="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+            <span>Đơn hàng đang chờ nhận</span>
+            <span className="badge text-bg-warning">{donDatHangs.length}</span>
+          </div>
+          <div className="card-body p-0">
+            <Bang
+              dong={donDatHangs}
+              trong="Không có đơn hàng nào đang chờ nhận"
+              cot={[
+                { ten: 'Số đơn', render: r => <code className="small">{r.so_don}</code> },
+                { ten: 'Nhà cung cấp', render: r => r.nha_cung_cap?.ten_ncc || '—' },
+                { ten: 'Ngày đặt', render: r => ngay(r.ngay_dat) },
+                { ten: 'Giao dự kiến', render: r => r.ngay_giao_du_kien ? ngay(r.ngay_giao_du_kien) : '—' },
+                { ten: 'Tổng tiền', lop: 'text-end', render: r => tien(r.tong_tien) },
+                { ten: 'Trạng thái', render: r => <TrangThai gt={r.trang_thai} /> },
+                { ten: '', lop: 'text-end', render: r => duocTao && (
+                  <button className="btn btn-sm btn-primary" onClick={() => moNhanHang(r)}>Nhận hàng</button>
+                ) }
+              ]}
+            />
+          </div>
+        </div>
+      )}
 
       {dangTai ? <DangTai /> : (
         <div className="card border-0 shadow-sm">
@@ -236,7 +269,7 @@ export default function NhapHang() {
             <thead className="table-light">
               <tr>
                 <th style={{ minWidth: 220 }}>Vật tư</th>
-                <th style={{ width: 120 }}>Số lượng</th>
+                <th style={{ width: 150 }}>{donDatHangId ? 'Nhận lần này' : 'Số lượng'}</th>
                 <th style={{ width: 140 }}>Đơn giá</th>
                 <th style={{ width: 160 }}>Hạn sử dụng</th>
                 <th style={{ width: 40 }} />
@@ -256,8 +289,13 @@ export default function NhapHang() {
                       ))}
                     </select>
                   </td>
-                  <td><input type="number" step="0.001" min="0" className="form-control form-control-sm"
-                    value={d.so_luong} onChange={e => suaDong(i, 'so_luong', e.target.value)} /></td>
+                  <td>
+                    <input type="number" step="0.001" min="0" className="form-control form-control-sm"
+                      value={d.so_luong} onChange={e => suaDong(i, 'so_luong', e.target.value)} />
+                    {d.so_luong_dat != null && (
+                      <div className="form-text mb-0">Đặt {so(d.so_luong_dat)} — đã nhận {so(d.so_luong_da_nhan)}</div>
+                    )}
+                  </td>
                   <td><input type="number" step="1" min="0" className="form-control form-control-sm"
                     value={d.don_gia} onChange={e => suaDong(i, 'don_gia', e.target.value)} /></td>
                   <td><input type="date" className="form-control form-control-sm"
