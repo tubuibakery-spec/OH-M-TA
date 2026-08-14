@@ -75,7 +75,7 @@ const PHONG_BAN = [
   { id: 'sale_b2b', nhan: 'Sale B2B', bieuTuong: '🤝', canChiNhanh: true,
     duongChoPhep: ['/khach-hang-b2b', '/bang-gia-b2b', '/co-hoi-ban-hang', '/don-hang-b2b', '/cong-no', '/khuyen-mai'] },
   { id: 'logistic', nhan: 'Logistics', bieuTuong: '🚛', canChiNhanh: true,
-    duongChoPhep: ['/chuyen-giao-hang', '/phuong-tien', '/xuat-kho'] },
+    duongChoPhep: ['/chuyen-giao-hang', '/phuong-tien', '/xuat-kho', '/nhap-hang', '/kiem-ke'] },
   { id: 'cua_hang', nhan: 'Cửa hàng (Bán hàng)', bieuTuong: '🏪', canChiNhanh: true,
     duongChoPhep: ['/ban-le', '/ca-ban-hang', '/khuyen-mai', '/du-bao-ban', '/ton-kho', '/kiem-ke', '/xuat-kho', '/vat-tu'] }
 ]

@@ -75,12 +75,19 @@ export default function DonDatHang() {
       if (truong === 'vat_tu_id') {
         const g = giaTheoNcc[gt]
         if (g) { moi.he_so_quy_doi = String(g.he_so_quy_doi ?? 1); moi.don_gia = String(g.don_gia ?? '') }
+        else { moi.so_luong_mua = ''; moi.he_so_quy_doi = '1'; moi.don_gia = '' }
       }
       return moi
     }))
   }
   function themDongTao() { setDsDongTao(ds => [...ds, { ...DONG_TAO_TRONG }]) }
   function xoaDongTao(i) { setDsDongTao(ds => ds.filter((_, idx) => idx !== i)) }
+
+  function donViMuaTao(vatTuId) {
+    const g = giaTheoNcc[vatTuId]
+    if (g?.don_vi_mua) return g.don_vi_mua
+    return vatTus.find(v => v.id === vatTuId)?.don_vi_tinh?.ma_dvt || '—'
+  }
 
   const tongTienTao = dsDongTao.reduce((s, d) =>
     s + (Number(d.so_luong_mua) || 0) * (Number(d.don_gia) || 0), 0)
@@ -339,49 +346,73 @@ export default function DonDatHang() {
           <table className="table table-sm align-middle">
             <thead>
               <tr>
-                <th>Vật tư</th><th style={{ width: 130 }}>SL (ĐV mua)</th>
+                <th style={{ minWidth: 220 }}>Vật tư</th><th style={{ width: 130 }}>SL (ĐV mua)</th>
+                <th style={{ width: 90 }}>ĐV mua</th>
                 <th style={{ width: 110 }}>Quy đổi</th><th style={{ width: 150 }}>Đơn giá</th>
                 <th className="text-end" style={{ width: 120 }}>Thành tiền</th><th style={{ width: 40 }} />
               </tr>
             </thead>
             <tbody>
-              {dsDongTao.map((d, i) => (
-                <tr key={i}>
-                  <td>
-                    <select className="form-select form-select-sm" value={d.vat_tu_id}
-                      onChange={e => suaDongTao(i, 'vat_tu_id', e.target.value)}>
-                      <option value="">— Chọn vật tư —</option>
-                      {vatTus.map(v => (
-                        <option key={v.id} value={v.id}>
-                          {v.ten_vat_tu}{giaTheoNcc[v.id] ? ' ★ đã có giá' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="0.001" className="form-control form-control-sm"
-                      value={d.so_luong_mua} onChange={e => suaDongTao(i, 'so_luong_mua', e.target.value)} />
-                  </td>
-                  <td>
-                    <input type="number" min="0.001" step="0.001" className="form-control form-control-sm"
-                      value={d.he_so_quy_doi} onChange={e => suaDongTao(i, 'he_so_quy_doi', e.target.value)} />
-                  </td>
-                  <td>
-                    <input type="number" min="0" className="form-control form-control-sm"
-                      value={d.don_gia} onChange={e => suaDongTao(i, 'don_gia', e.target.value)} />
-                  </td>
-                  <td className="text-end">{tien((Number(d.so_luong_mua) || 0) * (Number(d.don_gia) || 0))}</td>
-                  <td>
-                    {dsDongTao.length > 1 && (
-                      <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => xoaDongTao(i)}>×</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {dsDongTao.map((d, i) => {
+                const khongThuocNcc = !!(d.vat_tu_id && nccTaoId && !giaTheoNcc[d.vat_tu_id])
+                return (
+                  <tr key={i}>
+                    <td>
+                      <select className="form-select form-select-sm" value={d.vat_tu_id}
+                        onChange={e => suaDongTao(i, 'vat_tu_id', e.target.value)}>
+                        <option value="">— Chọn vật tư —</option>
+                        {nccTaoId ? (
+                          <>
+                            <optgroup label="Sản phẩm của NCC này">
+                              {vatTus.filter(v => giaTheoNcc[v.id]).map(v => (
+                                <option key={v.id} value={v.id}>{v.ten_vat_tu}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="Vật tư khác (không thuộc NCC này)">
+                              {vatTus.filter(v => !giaTheoNcc[v.id]).map(v => (
+                                <option key={v.id} value={v.id}>{v.ten_vat_tu}</option>
+                              ))}
+                            </optgroup>
+                          </>
+                        ) : (
+                          vatTus.map(v => <option key={v.id} value={v.id}>{v.ten_vat_tu}</option>)
+                        )}
+                      </select>
+                      {khongThuocNcc && (
+                        <div className="text-danger small mt-1">
+                          ⚠️ Vật tư này không thuộc danh mục NCC đã chọn — không thể nhập số lượng đặt.
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <input type="number" min="0" step="0.001" className="form-control form-control-sm"
+                        value={d.so_luong_mua} disabled={khongThuocNcc}
+                        onChange={e => suaDongTao(i, 'so_luong_mua', e.target.value)} />
+                    </td>
+                    <td className="text-secondary small">{d.vat_tu_id ? donViMuaTao(d.vat_tu_id) : '—'}</td>
+                    <td>
+                      <input type="number" min="0.001" step="0.001" className="form-control form-control-sm"
+                        value={d.he_so_quy_doi} disabled={khongThuocNcc}
+                        onChange={e => suaDongTao(i, 'he_so_quy_doi', e.target.value)} />
+                    </td>
+                    <td>
+                      <input type="number" min="0" className="form-control form-control-sm"
+                        value={d.don_gia} disabled={khongThuocNcc}
+                        onChange={e => suaDongTao(i, 'don_gia', e.target.value)} />
+                    </td>
+                    <td className="text-end">{tien((Number(d.so_luong_mua) || 0) * (Number(d.don_gia) || 0))}</td>
+                    <td>
+                      {dsDongTao.length > 1 && (
+                        <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => xoaDongTao(i)}>×</button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
             <tfoot className="table-light">
               <tr>
-                <td colSpan={4} className="text-end fw-semibold">Tổng tiền</td>
+                <td colSpan={5} className="text-end fw-semibold">Tổng tiền</td>
                 <td className="text-end fw-bold">{tien(tongTienTao)}</td>
                 <td />
               </tr>
@@ -390,7 +421,7 @@ export default function DonDatHang() {
         </div>
         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={themDongTao}>+ Thêm dòng</button>
         <div className="form-text mt-2">
-          Chọn NCC trước để tự điền đơn giá/hệ số quy đổi theo "Bảng giá NCC" (nếu có) — vẫn sửa tay được. Đơn tạo ở trạng thái Nháp, vào danh sách để Gửi NCC.
+          Chọn NCC trước để dropdown vật tư hiện đúng danh mục NCC đó, tự điền đơn giá/hệ số quy đổi/đơn vị mua theo "Bảng giá NCC" — vẫn sửa tay được. Đơn tạo ở trạng thái Nháp, vào danh sách để Gửi NCC.
         </div>
       </Modal>
     </Trang>
