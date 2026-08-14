@@ -7,45 +7,67 @@ import { so, tien, donGiaSuDung } from '../lib/dinhDang'
 const LOAI = {
   nguyen_vat_lieu: 'Nguyên vật liệu',
   ban_thanh_pham: 'Bán thành phẩm',
-  thanh_pham: 'Thành phẩm'
+  thanh_pham: 'Thành phẩm',
+  bao_bi: 'Bao bì',
+  dung_cu: 'Dụng cụ'
 }
+const MA_LOAI = {
+  nguyen_vat_lieu: 'NVL', ban_thanh_pham: 'BTP', thanh_pham: 'TP', bao_bi: 'BB', dung_cu: 'DC'
+}
+const BAO_QUAN = { thuong: 'Thường', mat: 'Mát', dong_lanh: 'Đông lạnh' }
 
 const MOI = {
   ma_vat_tu: '', ten_vat_tu: '', loai_vat_tu: 'nguyen_vat_lieu',
   don_vi_tinh_id: '', ton_toi_thieu: '0', han_su_dung_ngay: '', duoc_ban: false,
   nhom: '', ty_le_thu_hoi_so_che_pct: '100', ty_le_su_dung_van_hanh_pct: '100',
-  gia_ban: '', thue_suat_ban: '0'
+  gia_ban: '', thue_suat_ban: '0', dieu_kien_bao_quan: ''
 }
 
 export default function VatTu() {
   const { coQuyenMoiNoi } = useApp()
   const [ds, setDs] = useState([])
   const [dvts, setDvts] = useState([])
+  const [nccs, setNccs] = useState([])
   const [giaNccChinh, setGiaNccChinh] = useState({})
   const [tim, setTim] = useState('')
   const [dangTai, setDangTai] = useState(true)
   const [loi, setLoi] = useState(null)
   const [form, setForm] = useState(null)
   const [dangLuu, setDangLuu] = useState(false)
+  const [nccSinhMa, setNccSinhMa] = useState('')
+  const [maTuDong, setMaTuDong] = useState(true)
 
   const nap = useCallback(async () => {
     setDangTai(true); setLoi(null)
-    const [v, d, g] = await Promise.all([
+    const [v, d, n, g] = await Promise.all([
       supabase.from('vat_tu')
-        .select('id, ma_vat_tu, ten_vat_tu, loai_vat_tu, nhom, ton_toi_thieu, han_su_dung_ngay, duoc_ban, gia_von_gan_nhat, trang_thai, don_vi_tinh_id, don_vi_tinh(ma_dvt), ty_le_thu_hoi_so_che_pct, ty_le_su_dung_van_hanh_pct, gia_ban, thue_suat_ban, gia_ban_da_vat')
+        .select('id, ma_vat_tu, ten_vat_tu, loai_vat_tu, nhom, ton_toi_thieu, han_su_dung_ngay, duoc_ban, gia_von_gan_nhat, trang_thai, don_vi_tinh_id, don_vi_tinh(ma_dvt), ty_le_thu_hoi_so_che_pct, ty_le_su_dung_van_hanh_pct, gia_ban, thue_suat_ban, gia_ban_da_vat, dieu_kien_bao_quan')
         .order('ten_vat_tu'),
       supabase.from('don_vi_tinh').select('id, ma_dvt, ten_dvt').order('ma_dvt'),
-      supabase.from('gia_nha_cung_cap').select('vat_tu_id, don_gia')
+      supabase.from('nha_cung_cap').select('id, ma_ncc, ten_ncc').order('ten_ncc'),
+      supabase.from('gia_nha_cung_cap').select('vat_tu_id, don_gia, vat_suat')
         .eq('la_ncc_chinh', true).eq('dang_ap_dung', true)
     ])
     if (v.error) setLoi(v.error.message)
     if (d.error) setLoi(d.error.message)
+    if (n.error) setLoi(n.error.message)
     if (g.error) setLoi(g.error.message)
-    setDs(v.data || []); setDvts(d.data || []); setDangTai(false)
-    setGiaNccChinh(Object.fromEntries((g.data || []).map(r => [r.vat_tu_id, r.don_gia])))
+    setDs(v.data || []); setDvts(d.data || []); setNccs(n.data || []); setDangTai(false)
+    setGiaNccChinh(Object.fromEntries((g.data || []).map(r => [r.vat_tu_id, r])))
   }, [])
 
   useEffect(() => { nap() }, [nap])
+
+  function sinhMa(loai, maNcc) {
+    const prefix = `${MA_LOAI[loai]}-${maNcc}-`
+    const soHienCo = ds
+      .map(v => v.ma_vat_tu)
+      .filter(m => m.startsWith(prefix))
+      .map(m => parseInt(m.slice(prefix.length), 10))
+      .filter(n => !isNaN(n))
+    const stt = (soHienCo.length ? Math.max(...soHienCo) : 0) + 1
+    return prefix + String(stt).padStart(3, '0')
+  }
 
   async function luu() {
     setDangLuu(true); setLoi(null)
@@ -62,7 +84,8 @@ export default function VatTu() {
         ty_le_thu_hoi_so_che_pct: Number(form.ty_le_thu_hoi_so_che_pct || 100),
         ty_le_su_dung_van_hanh_pct: Number(form.ty_le_su_dung_van_hanh_pct || 100),
         gia_ban: form.gia_ban === '' ? null : Number(form.gia_ban),
-        thue_suat_ban: Number(form.thue_suat_ban || 0)
+        thue_suat_ban: Number(form.thue_suat_ban || 0),
+        dieu_kien_bao_quan: form.dieu_kien_bao_quan || null
       }
       if (!ban.ma_vat_tu || !ban.ten_vat_tu || !ban.don_vi_tinh_id) {
         throw new Error('Cần điền mã, tên và đơn vị tính.')
@@ -85,7 +108,9 @@ export default function VatTu() {
       tieuDe="Vật tư"
       mota="Chỉ vật tư bật “Được bán” mới lên được hóa đơn bán hàng"
       hanhDong={duocTao && (
-        <button className="btn btn-primary" onClick={() => setForm({ ...MOI })}>+ Thêm vật tư</button>
+        <button className="btn btn-primary" onClick={() => {
+          setNccSinhMa(''); setMaTuDong(true); setForm({ ...MOI })
+        }}>+ Thêm vật tư</button>
       )}
     >
       <Loi loi={loi} onDong={() => setLoi(null)} />
@@ -106,6 +131,7 @@ export default function VatTu() {
               { ten: 'Loại', render: r => LOAI[r.loai_vat_tu] || r.loai_vat_tu },
               { ten: 'Nhóm', render: r => r.nhom || '—' },
               { ten: 'ĐVT', render: r => r.don_vi_tinh?.ma_dvt },
+              { ten: 'Bảo quản', render: r => r.loai_vat_tu === 'nguyen_vat_lieu' ? (BAO_QUAN[r.dieu_kien_bao_quan] || '—') : '—' },
               { ten: 'Tồn tối thiểu', lop: 'text-end', render: r => so(r.ton_toi_thieu) },
               { ten: 'HSD (ngày)', lop: 'text-end', render: r => r.han_su_dung_ngay ?? '—' },
               { ten: 'Được bán', render: r => r.duoc_ban
@@ -115,22 +141,26 @@ export default function VatTu() {
               { ten: 'Đơn giá sử dụng', lop: 'text-end', render: r => {
                   const gia = giaNccChinh[r.id]
                   return gia
-                    ? tien(donGiaSuDung(gia, r.ty_le_thu_hoi_so_che_pct, r.ty_le_su_dung_van_hanh_pct))
+                    ? tien(donGiaSuDung(gia.don_gia, r.ty_le_thu_hoi_so_che_pct, r.ty_le_su_dung_van_hanh_pct))
                     : '—'
                 } },
               { ten: 'Giá bán', lop: 'text-end', render: r => r.duoc_ban && r.gia_ban_da_vat ? tien(r.gia_ban_da_vat) : '—' },
               { ten: '', lop: 'text-end', render: r => duocSua && (
                 <button className="btn btn-sm btn-outline-secondary"
-                  onClick={() => setForm({
-                    ...r,
-                    ton_toi_thieu: String(r.ton_toi_thieu ?? 0),
-                    han_su_dung_ngay: r.han_su_dung_ngay ?? '',
-                    nhom: r.nhom || '',
-                    ty_le_thu_hoi_so_che_pct: String(r.ty_le_thu_hoi_so_che_pct ?? 100),
-                    ty_le_su_dung_van_hanh_pct: String(r.ty_le_su_dung_van_hanh_pct ?? 100),
-                    gia_ban: r.gia_ban != null ? String(r.gia_ban) : '',
-                    thue_suat_ban: String(r.thue_suat_ban ?? 0)
-                  })}>Sửa</button>
+                  onClick={() => {
+                    setNccSinhMa(''); setMaTuDong(false)
+                    setForm({
+                      ...r,
+                      ton_toi_thieu: String(r.ton_toi_thieu ?? 0),
+                      han_su_dung_ngay: r.han_su_dung_ngay ?? '',
+                      nhom: r.nhom || '',
+                      ty_le_thu_hoi_so_che_pct: String(r.ty_le_thu_hoi_so_che_pct ?? 100),
+                      ty_le_su_dung_van_hanh_pct: String(r.ty_le_su_dung_van_hanh_pct ?? 100),
+                      gia_ban: r.gia_ban != null ? String(r.gia_ban) : '',
+                      thue_suat_ban: String(r.thue_suat_ban ?? 0),
+                      dieu_kien_bao_quan: r.dieu_kien_bao_quan || ''
+                    })
+                  }}>Sửa</button>
               ) }
             ]}
           />
@@ -147,7 +177,7 @@ export default function VatTu() {
             <div className="col-md-4">
               <label className="form-label">Mã vật tư *</label>
               <input className="form-control" value={form.ma_vat_tu}
-                onChange={e => setForm({ ...form, ma_vat_tu: e.target.value })} />
+                onChange={e => { setForm({ ...form, ma_vat_tu: e.target.value }); setMaTuDong(false) }} />
             </div>
             <div className="col-md-8">
               <label className="form-label">Tên vật tư *</label>
@@ -157,7 +187,14 @@ export default function VatTu() {
             <div className="col-md-6">
               <label className="form-label">Loại</label>
               <select className="form-select" value={form.loai_vat_tu}
-                onChange={e => setForm({ ...form, loai_vat_tu: e.target.value })}>
+                onChange={e => {
+                  const loaiMoi = e.target.value
+                  setForm({ ...form, loai_vat_tu: loaiMoi })
+                  if (!form.id && maTuDong && nccSinhMa) {
+                    const ncc = nccs.find(n => n.id === nccSinhMa)
+                    if (ncc) setForm(f => ({ ...f, loai_vat_tu: loaiMoi, ma_vat_tu: sinhMa(loaiMoi, ncc.ma_ncc) }))
+                  }
+                }}>
                 {Object.entries(LOAI).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
@@ -166,6 +203,22 @@ export default function VatTu() {
               <input className="form-control" placeholder="VD: Thịt heo, Gia vị…" value={form.nhom || ''}
                 onChange={e => setForm({ ...form, nhom: e.target.value })} />
             </div>
+            {!form.id && (
+              <div className="col-md-6">
+                <label className="form-label">NCC (để tự sinh mã)</label>
+                <select className="form-select" value={nccSinhMa}
+                  onChange={e => {
+                    const id = e.target.value
+                    setNccSinhMa(id)
+                    const ncc = nccs.find(n => n.id === id)
+                    if (ncc && maTuDong) setForm(f => ({ ...f, ma_vat_tu: sinhMa(f.loai_vat_tu, ncc.ma_ncc) }))
+                  }}>
+                  <option value="">— Không chọn —</option>
+                  {nccs.map(n => <option key={n.id} value={n.id}>{n.ma_ncc} — {n.ten_ncc}</option>)}
+                </select>
+                <div className="form-text">Chỉ hỗ trợ đặt mã, không tự gán giá NCC — vào "Bảng giá NCC" để khai giá.</div>
+              </div>
+            )}
             <div className="col-md-6">
               <label className="form-label">Đơn vị tính *</label>
               <select className="form-select" value={form.don_vi_tinh_id}
@@ -187,6 +240,36 @@ export default function VatTu() {
                 onChange={e => setForm({ ...form, han_su_dung_ngay: e.target.value })} />
               <div className="form-text">Có giá trị thì hệ thống tự tính HSD cho lô sản xuất.</div>
             </div>
+            {form.loai_vat_tu === 'nguyen_vat_lieu' && (
+              <div className="col-md-6">
+                <label className="form-label">Điều kiện bảo quản</label>
+                <select className="form-select" value={form.dieu_kien_bao_quan || ''}
+                  onChange={e => setForm({ ...form, dieu_kien_bao_quan: e.target.value })}>
+                  <option value="">— Chưa xác định —</option>
+                  {Object.entries(BAO_QUAN).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div className="col-12"><hr className="my-1" /><small className="text-secondary fw-bold">GIÁ MUA (theo NCC chính — xem/sửa ở "Bảng giá NCC")</small></div>
+            <div className="col-md-4">
+              <label className="form-label">Đơn giá mua (-VAT)</label>
+              <input type="text" className="form-control bg-light" readOnly
+                value={form.id && giaNccChinh[form.id] ? tien(giaNccChinh[form.id].don_gia) : '—'} />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">VAT mua (%)</label>
+              <input type="text" className="form-control bg-light" readOnly
+                value={form.id && giaNccChinh[form.id] ? `${giaNccChinh[form.id].vat_suat}%` : '—'} />
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Đơn giá mua (+VAT)</label>
+              <input type="text" className="form-control bg-light" readOnly
+                value={form.id && giaNccChinh[form.id]
+                  ? tien(Math.round(giaNccChinh[form.id].don_gia * (1 + giaNccChinh[form.id].vat_suat / 100)))
+                  : '—'} />
+            </div>
+
             <div className="col-12"><hr className="my-1" /><small className="text-secondary fw-bold">THÔNG TIN SỬ DỤNG</small></div>
             <div className="col-md-4">
               <label className="form-label">Tỷ lệ thu hồi sau sơ chế (%)</label>
@@ -206,7 +289,7 @@ export default function VatTu() {
               <label className="form-label">Đơn giá sử dụng <small className="text-secondary">(tự tính)</small></label>
               <input type="text" className="form-control bg-light" readOnly
                 value={tien(donGiaSuDung(
-                  form.id ? giaNccChinh[form.id] : null,
+                  form.id && giaNccChinh[form.id] ? giaNccChinh[form.id].don_gia : null,
                   Number(form.ty_le_thu_hoi_so_che_pct || 100),
                   Number(form.ty_le_su_dung_van_hanh_pct || 100)
                 ))} />
@@ -225,7 +308,7 @@ export default function VatTu() {
 
             {form.duoc_ban && (
               <>
-                <div className="col-12"><hr className="my-1" /><small className="text-secondary fw-bold">GIÁ BÁN</small></div>
+                <div className="col-12"><hr className="my-1" /><small className="text-secondary fw-bold">GIÁ BÁN (cho khách hàng)</small></div>
                 <div className="col-md-4">
                   <label className="form-label">Giá bán (-VAT)</label>
                   <input type="number" min="0" className="form-control" value={form.gia_ban}
