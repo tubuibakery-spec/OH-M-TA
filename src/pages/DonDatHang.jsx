@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext'
 import { Trang, Bang, DangTai, Loi, TrangThai, Modal } from '../components/Chung'
 import { tien, so, ngay, ngayGio, homNay } from '../lib/dinhDang'
 
-const DONG_TAO_TRONG = { vat_tu_id: '', so_luong_mua: '', he_so_quy_doi: '1', don_gia: '' }
+const DONG_TAO_TRONG = { vat_tu_id: '', so_luong_mua: '', he_so_quy_doi: '1', don_gia: '', vat_suat: '' }
 
 export default function DonDatHang() {
   const { chiNhanhId, coQuyen, nguoiDung } = useApp()
@@ -70,7 +70,7 @@ export default function DonDatHang() {
         .select('vat_tu_id, don_gia, he_so_quy_doi, don_vi_mua, vat_suat')
         .eq('nha_cung_cap_id', d.nha_cung_cap_id).eq('dang_ap_dung', true),
       supabase.from('chi_tiet_don_dat_hang_ncc')
-        .select('vat_tu_id, so_luong_mua, he_so_quy_doi, don_gia')
+        .select('vat_tu_id, so_luong_mua, he_so_quy_doi, don_gia, vat_suat')
         .eq('don_dat_hang_id', d.id)
     ])
     if (gRes.error) { setLoi(gRes.error.message); return }
@@ -78,7 +78,8 @@ export default function DonDatHang() {
     setGiaTheoNcc(Object.fromEntries((gRes.data || []).map(r => [r.vat_tu_id, r])))
     setDsDongTao((cRes.data || []).map(r => ({
       vat_tu_id: r.vat_tu_id, so_luong_mua: String(r.so_luong_mua),
-      he_so_quy_doi: String(r.he_so_quy_doi), don_gia: String(r.don_gia)
+      he_so_quy_doi: String(r.he_so_quy_doi), don_gia: String(r.don_gia),
+      vat_suat: String(r.vat_suat ?? 0)
     })))
   }
 
@@ -96,7 +97,8 @@ export default function DonDatHang() {
     setDsDongTao((data || []).length
       ? data.map(g => ({
           vat_tu_id: g.vat_tu_id, so_luong_mua: '',
-          he_so_quy_doi: String(g.he_so_quy_doi ?? 1), don_gia: String(g.don_gia ?? '')
+          he_so_quy_doi: String(g.he_so_quy_doi ?? 1), don_gia: String(g.don_gia ?? ''),
+          vat_suat: String(g.vat_suat ?? 0)
         }))
       : [{ ...DONG_TAO_TRONG }])
   }
@@ -107,8 +109,10 @@ export default function DonDatHang() {
       const moi = { ...d, [truong]: gt }
       if (truong === 'vat_tu_id') {
         const g = giaTheoNcc[gt]
-        if (g) { moi.he_so_quy_doi = String(g.he_so_quy_doi ?? 1); moi.don_gia = String(g.don_gia ?? '') }
-        else { moi.so_luong_mua = ''; moi.he_so_quy_doi = '1'; moi.don_gia = '' }
+        if (g) {
+          moi.he_so_quy_doi = String(g.he_so_quy_doi ?? 1); moi.don_gia = String(g.don_gia ?? '')
+          moi.vat_suat = String(g.vat_suat ?? 0)
+        } else { moi.so_luong_mua = ''; moi.he_so_quy_doi = '1'; moi.don_gia = ''; moi.vat_suat = '' }
       }
       return moi
     }))
@@ -155,7 +159,7 @@ export default function DonDatHang() {
         hopLe.map(d => ({
           don_dat_hang_id: donId, vat_tu_id: d.vat_tu_id,
           so_luong_mua: Number(d.so_luong_mua), he_so_quy_doi: Number(d.he_so_quy_doi) || 1,
-          don_gia: Number(d.don_gia || 0)
+          don_gia: Number(d.don_gia || 0), vat_suat: Number(d.vat_suat || 0)
         }))
       )
       if (e2) throw e2
@@ -170,7 +174,7 @@ export default function DonDatHang() {
     setLoi(null); setOk(null)
     try {
       const { data: ctData, error: e0 } = await supabase.from('chi_tiet_don_dat_hang_ncc')
-        .select('vat_tu_id, so_luong_mua, he_so_quy_doi, don_gia')
+        .select('vat_tu_id, so_luong_mua, he_so_quy_doi, don_gia, vat_suat')
         .eq('don_dat_hang_id', d.id)
       if (e0) throw e0
       if (!ctData?.length) throw new Error('Đơn gốc chưa có dòng nào để nhân bản.')
@@ -181,7 +185,8 @@ export default function DonDatHang() {
       const { error: e2 } = await supabase.from('chi_tiet_don_dat_hang_ncc').insert(
         ctData.map(r => ({
           don_dat_hang_id: moi.id, vat_tu_id: r.vat_tu_id,
-          so_luong_mua: r.so_luong_mua, he_so_quy_doi: r.he_so_quy_doi, don_gia: r.don_gia
+          so_luong_mua: r.so_luong_mua, he_so_quy_doi: r.he_so_quy_doi, don_gia: r.don_gia,
+          vat_suat: r.vat_suat
         }))
       )
       if (e2) throw e2
@@ -194,7 +199,7 @@ export default function DonDatHang() {
     setXem(d); setCt([]); setGhiChuList([]); setLichSu([]); setNoiDungMoi(''); setTabXem('chi_tiet')
     const [ctRes, gcRes, nkRes] = await Promise.all([
       supabase.from('chi_tiet_don_dat_hang_ncc')
-        .select('id, so_luong_mua, he_so_quy_doi, so_luong_dat, so_luong_da_nhan, don_gia, thanh_tien, vat_tu(ten_vat_tu, don_vi_tinh(ma_dvt))')
+        .select('id, so_luong_mua, he_so_quy_doi, so_luong_dat, so_luong_da_nhan, don_gia, vat_suat, thanh_tien, vat_tu(ten_vat_tu, don_vi_tinh(ma_dvt))')
         .eq('don_dat_hang_id', d.id),
       supabase.from('ghi_chu_don_dat_hang')
         .select('id, nguoi_dung_email, noi_dung, created_at')
@@ -317,9 +322,6 @@ export default function DonDatHang() {
                         <button className="btn btn-sm btn-outline-danger" onClick={() => tuChoi(r)}>Từ chối</button>
                       </>
                     )}
-                    {duocSua && r.trang_thai === 'da_gui' && (
-                      <button className="btn btn-sm btn-outline-primary" onClick={() => doiTrangThai(r, 'da_xac_nhan')}>NCC xác nhận</button>
-                    )}
                     {duocTao && (
                       <button className="btn btn-sm btn-outline-secondary" onClick={() => nhanBanDon(r)}>Nhân bản</button>
                     )}
@@ -366,10 +368,10 @@ export default function DonDatHang() {
               trong="Đơn chưa có dòng nào"
               cot={[
                 { ten: 'Vật tư', render: r => r.vat_tu?.ten_vat_tu },
-                { ten: 'Đặt (ĐV mua)', lop: 'text-end', render: r => so(r.so_luong_mua) },
-                { ten: 'Quy đổi', lop: 'text-end', render: r => `×${so(r.he_so_quy_doi)}` },
+                { ten: 'Đặt (ĐV mua)', lop: 'text-end no-print', render: r => so(r.so_luong_mua) },
+                { ten: 'Quy đổi', lop: 'text-end no-print', render: r => `×${so(r.he_so_quy_doi)}` },
                 { ten: 'Thành SL kho', lop: 'text-end', render: r => `${so(r.so_luong_dat)} ${r.vat_tu?.don_vi_tinh?.ma_dvt || ''}` },
-                { ten: 'Đã nhận', lop: 'text-end', render: r => (
+                { ten: 'Đã nhận', lop: 'text-end no-print', render: r => (
                   <span className={Number(r.so_luong_da_nhan) >= Number(r.so_luong_dat) ? 'text-success fw-semibold' : ''}>
                     {so(r.so_luong_da_nhan)}
                   </span>
@@ -378,9 +380,33 @@ export default function DonDatHang() {
                 { ten: 'Thành tiền', lop: 'text-end', render: r => tien(r.thanh_tien) }
               ]}
             />
-            <div className="alert alert-secondary small mt-3 mb-0">
+            <div className="alert alert-secondary small mt-3 mb-0 no-print">
               “Đã nhận” tự cộng khi phiếu nhập gắn với đơn này được duyệt.
             </div>
+            {(() => {
+              const tongTienVat = ct.reduce((s, r) => s + Number(r.thanh_tien || 0) * Number(r.vat_suat || 0) / 100, 0)
+              const tongCong = Number(xem?.tong_tien || 0) + tongTienVat
+              return (
+                <div className="d-flex justify-content-end mt-3">
+                  <table className="table table-sm w-auto mb-0">
+                    <tbody>
+                      <tr>
+                        <td className="text-secondary">Tổng tiền hàng</td>
+                        <td className="text-end ps-4">{tien(xem?.tong_tien)}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-secondary">Tổng tiền VAT</td>
+                        <td className="text-end ps-4">{tien(tongTienVat)}</td>
+                      </tr>
+                      <tr className="fw-bold border-top">
+                        <td>Tổng tiền đơn hàng</td>
+                        <td className="text-end ps-4">{tien(tongCong)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )
+            })()}
           </>
         )}
 
